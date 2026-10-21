@@ -34,14 +34,22 @@ public class FrameStreamer {
     public static synchronized void init() {
         if (initialized) return;
 
-        // Initialize with 2560x1440 (2K QHD) smooth dynamic texture (bilinear filtering)
-        dynamicTexture = new SmoothDynamicTexture("reimagined_frame", 2560, 1440, false);
+        // Dynamically detect frame resolution (e.g. 2560x1440 Standard vs 1920x1080 Lite)
+        NativeImage firstFrame = loadFrame(false, 1);
+        int width = firstFrame != null ? firstFrame.getWidth() : 2560;
+        int height = firstFrame != null ? firstFrame.getHeight() : 1440;
+
+        dynamicTexture = new SmoothDynamicTexture("reimagined_frame", width, height, false);
         Minecraft.getInstance().getTextureManager().register(TEXTURE_ID, dynamicTexture);
         initialized = true;
         lastUploadedFrame = -1;
 
-        // Start prefetching the first few intro frames
-        prefetchUpcoming(true, 1, 5);
+        if (firstFrame != null) {
+            predecodedCache.put(cacheKey(false, 1), firstFrame);
+        }
+
+        // Start prefetching the next intro frames
+        prefetchUpcoming(false, 2, 5);
     }
 
     public static void loadLastIntroFrame() {

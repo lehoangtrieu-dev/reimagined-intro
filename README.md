@@ -14,10 +14,10 @@
 
 Reimagined Intro comes in two variants depending on your hardware:
 
-| Edition      | Quality          | File Size | Recommended For                        | Where to Get                                                                         |
-| :----------- | :--------------- | :-------- | :------------------------------------- | :----------------------------------------------------------------------------------- |
-| **Standard** | **2K (1440p)**   | ~100 MB   | Standard / gaming PCs, crisp displays  | **Modrinth** & GitHub                                                                |
-| **Lite**     | **1080p / 720p** | ~25 MB    | Laptops, integrated GPUs, "potato" PCs | [**GitHub Releases**](https://github.com/lehoangtrieu-dev/reimagined-intro/releases) |
+| Edition      | Quality          | File Size | Recommended For                           | Where to Get                                                                         |
+| :----------- | :--------------- | :-------- | :---------------------------------------- | :----------------------------------------------------------------------------------- |
+| **Standard** | **2K (1440p)**   | ~100 MB   | Standard / gaming PCs, crisp displays     | **Modrinth** & GitHub                                                                |
+| **Lite**     | **1080p / 720p** | ~35 MB    | Laptops, integrated GPUs, low-spec system | [**GitHub Releases**](https://github.com/lehoangtrieu-dev/reimagined-intro/releases) |
 
 > 💡 **Tip**: If you experience frame drops during the intro or simply want a smaller download for large modpacks, the **Lite Edition** runs smoothly even on older or budget hardware!
 
@@ -28,6 +28,8 @@ Reimagined Intro comes in two variants depending on your hardware:
 ### Reimagined Intro 3.0.0:
 
 - **Now a Standalone Mod**: Completely rebuilt from the ground up as a dedicated mod — FancyMenu and Drippy Loading Screen are no longer required!
+
+- **100% Open Source**: Full source code is now publicly available on [GitHub](https://github.com/lehoangtrieu-dev/reimagined-intro) under the MIT License!
 
 - **Seamless Transition**: Zero black frames or stutter (hopefully).
 

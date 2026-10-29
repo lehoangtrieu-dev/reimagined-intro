@@ -3,7 +3,7 @@ package noobtrieu.reimaginedintro.client;
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import noobtrieu.reimaginedintro.ReimaginedIntro;
 
 import java.io.InputStream;
@@ -12,7 +12,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class FrameStreamer {
-    public static final Identifier TEXTURE_ID = ReimaginedIntro.id("active_frame");
+    public static final ResourceLocation TEXTURE_ID = ReimaginedIntro.id("active_frame");
     public static final int INTRO_FRAME_COUNT = 161;
     public static final int LOOP_FRAME_COUNT = 238;
     public static final long FRAME_DURATION_MS = 40; // 25 FPS
@@ -39,7 +39,7 @@ public class FrameStreamer {
         int width = firstFrame != null ? firstFrame.getWidth() : 2560;
         int height = firstFrame != null ? firstFrame.getHeight() : 1440;
 
-        dynamicTexture = new SmoothDynamicTexture("reimagined_frame", width, height, false);
+        dynamicTexture = new SmoothDynamicTexture(width, height, false);
         Minecraft.getInstance().getTextureManager().register(TEXTURE_ID, dynamicTexture);
         initialized = true;
         lastUploadedFrame = -1;
@@ -188,7 +188,7 @@ public class FrameStreamer {
         return (isLoop ? "l_" : "i_") + frame;
     }
 
-    public static Identifier getTextureId() {
+    public static ResourceLocation getTextureId() {
         return TEXTURE_ID;
     }
 

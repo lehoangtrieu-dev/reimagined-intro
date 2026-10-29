@@ -1,12 +1,11 @@
 package noobtrieu.reimaginedintro.client;
 
-import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
 import noobtrieu.reimaginedintro.client.config.ModConfig;
+import org.lwjgl.glfw.GLFW;
 
 public class IntroScreen extends Screen {
     public IntroScreen() {
@@ -16,18 +15,18 @@ public class IntroScreen extends Screen {
     @Override
     protected void init() {
         super.init();
-        // Clear any remaining red loading overlay so it doesn't flash over the intro
-        Minecraft.getInstance().gui.setOverlay(null);
+        // Clear any remaining loading overlay so it doesn't flash over the intro
+        Minecraft.getInstance().setOverlay(null);
         IntroManager.startIntro();
     }
 
     @Override
-    public void extractBackground(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
-        // Suppress default background and panorama overlay extraction
+    public void renderBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        // Suppress default background and panorama overlay
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
+    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         long elapsed = IntroManager.getElapsedMs();
         boolean finished = elapsed >= FrameStreamer.INTRO_TOTAL_DURATION_MS;
         long renderElapsed = finished ? FrameStreamer.INTRO_TOTAL_DURATION_MS : elapsed;
@@ -57,17 +56,17 @@ public class IntroScreen extends Screen {
             y = 0;
         }
 
-        // Correct Minecraft 26.3 blit parameters: (id, x0, y0, x1, y1, u0, u1, v0, v1)
+        // Blit full frame onto the scaled quad
         guiGraphics.blit(
             FrameStreamer.getTextureId(),
             x,
             y,
-            x + renderWidth,
-            y + renderHeight,
-            0.0f,
-            1.0f,
-            0.0f,
-            1.0f
+            0.0F,
+            0.0F,
+            renderWidth,
+            renderHeight,
+            renderWidth,
+            renderHeight
         );
 
         // Smooth fade-in from black during first 400ms
@@ -83,7 +82,7 @@ public class IntroScreen extends Screen {
         if (ModConfig.get().showSkipPrompt && elapsed > 1500) {
             Component skipPrompt = Component.literal("ESC to skip");
             int textWidth = this.font.width(skipPrompt);
-            guiGraphics.text(this.font, skipPrompt, this.width - textWidth - 16, this.height - 20, 0x66FFFFFF);
+            guiGraphics.drawString(this.font, skipPrompt, this.width - textWidth - 16, this.height - 20, 0x66FFFFFF);
         }
 
         if (finished) {
@@ -92,12 +91,12 @@ public class IntroScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(KeyEvent event) {
-        if (event.key() == InputConstants.KEY_ESCAPE) {
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
             IntroManager.skip();
             return true;
         }
-        return super.keyPressed(event);
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override

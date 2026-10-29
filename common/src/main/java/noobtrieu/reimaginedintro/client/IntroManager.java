@@ -51,7 +51,7 @@ public class IntroManager {
             FrameStreamer.loadLastIntroFrame();
 
             // Transition directly to TitleScreen with smooth UI fade-in
-            Minecraft.getInstance().gui.setScreen(new TitleScreen(true));
+            Minecraft.getInstance().setScreen(new TitleScreen(true));
         }
     }
 
@@ -61,7 +61,7 @@ public class IntroManager {
         // Align timeline so loop begins smoothly at frame 1 without jump
         startTimeMs = System.currentTimeMillis() - FrameStreamer.INTRO_TOTAL_DURATION_MS;
         FrameStreamer.loadLastIntroFrame();
-        Minecraft.getInstance().gui.setScreen(new TitleScreen(true));
+        Minecraft.getInstance().setScreen(new TitleScreen(true));
     }
 
     public static void resetForReplay() {

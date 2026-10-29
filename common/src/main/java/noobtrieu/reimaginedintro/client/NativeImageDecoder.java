@@ -8,10 +8,33 @@ import org.lwjgl.system.MemoryUtil;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Constructor;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
 public class NativeImageDecoder {
+    private static final MethodHandle CONSTRUCTOR;
+
+    static {
+        MethodHandle mh = null;
+        try {
+            Constructor<NativeImage> ctor = NativeImage.class.getDeclaredConstructor(
+                NativeImage.Format.class,
+                int.class,
+                int.class,
+                boolean.class,
+                long.class
+            );
+            ctor.setAccessible(true);
+            mh = MethodHandles.lookup().unreflectConstructor(ctor);
+        } catch (Throwable t) {
+            throw new RuntimeException("Failed to lookup NativeImage constructor", t);
+        }
+        CONSTRUCTOR = mh;
+    }
+
     public static NativeImage decode(InputStream stream) throws IOException {
         byte[] bytes;
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
@@ -38,7 +61,12 @@ public class NativeImageDecoder {
                 throw new IOException("STBImage failed to decode image: " + STBImage.stbi_failure_reason());
             }
 
-            return new NativeImage(NativeImage.Format.RGBA, w.get(0), h.get(0), false, MemoryUtil.memAddress(pixels));
+            try {
+                return (NativeImage) CONSTRUCTOR.invokeExact(NativeImage.Format.RGBA, w.get(0), h.get(0), true, MemoryUtil.memAddress(pixels));
+            } catch (Throwable t) {
+                STBImage.stbi_image_free(pixels);
+                throw new IOException("Failed to instantiate NativeImage", t);
+            }
         } finally {
             MemoryUtil.memFree(directBuffer);
         }

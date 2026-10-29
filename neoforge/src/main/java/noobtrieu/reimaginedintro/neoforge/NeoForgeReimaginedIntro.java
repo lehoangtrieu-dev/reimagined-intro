@@ -18,7 +18,7 @@ public class NeoForgeReimaginedIntro {
     public NeoForgeReimaginedIntro(IEventBus modEventBus, ModContainer modContainer) {
         modEventBus.addListener(this::register);
 
-        if (FMLEnvironment.getDist() == Dist.CLIENT) {
+        if (FMLEnvironment.dist == Dist.CLIENT) {
             modContainer.registerExtensionPoint(
                 IConfigScreenFactory.class,
                 (client, parentScreen) -> new ModConfigScreen(parentScreen)

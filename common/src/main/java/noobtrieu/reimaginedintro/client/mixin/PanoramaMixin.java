@@ -1,50 +1,54 @@
 package noobtrieu.reimaginedintro.client.mixin;
 
-import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.renderer.Panorama;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.renderer.PanoramaRenderer;
 import net.minecraft.client.renderer.texture.AbstractTexture;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
+import org.lwjgl.opengl.GL11;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
-@Mixin(Panorama.class)
+@Mixin(PanoramaRenderer.class)
 public class PanoramaMixin {
     @Redirect(
-        method = "extractRenderState",
+        method = "render",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/client/gui/GuiGraphicsExtractor;blit(Lcom/mojang/renderpearl/api/pipeline/RenderPipeline;Lnet/minecraft/resources/Identifier;IIFFIIIIII)V"
+            target = "Lnet/minecraft/client/gui/GuiGraphics;blit(Lnet/minecraft/resources/ResourceLocation;IIIIFFIIII)V"
         )
     )
     private void fillPanoramaOverlay(
-        GuiGraphicsExtractor guiGraphics,
-        RenderPipeline pipeline,
-        Identifier texture,
+        GuiGraphics guiGraphics,
+        ResourceLocation texture,
         int x,
         int y,
-        float uOffset,
-        float vOffset,
         int width,
         int height,
+        float uOffset,
+        float vOffset,
         int uWidth,
         int vHeight,
         int textureWidth,
         int textureHeight
     ) {
         float targetAspect = 16.0f / 9.0f;
+        int tw = 16;
+        int th = 128;
         AbstractTexture tex = Minecraft.getInstance().getTextureManager().getTexture(texture);
-        if (tex != null && tex.getTexture() != null) {
-            int tw = tex.getTexture().getWidth(0);
-            int th = tex.getTexture().getHeight(0);
-            if (tw == 16 && th == 128) {
+        if (tex != null) {
+            tex.bind();
+            int w = GL11.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, 0, GL11.GL_TEXTURE_WIDTH);
+            int h = GL11.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, 0, GL11.GL_TEXTURE_HEIGHT);
+            if (w == 16 && h == 128) {
                 // Vanilla default 16x128 gradient: stretch as normal
-                guiGraphics.blit(pipeline, texture, x, y, uOffset, vOffset, width, height, uWidth, vHeight, textureWidth, textureHeight);
+                guiGraphics.blit(texture, x, y, width, height, uOffset, vOffset, uWidth, vHeight, textureWidth, textureHeight);
                 return;
             }
-            if (tw > 0 && th > 0) {
+            if (w > 0 && h > 0) {
+                tw = w;
+                th = h;
                 targetAspect = (float) tw / (float) th;
             }
         }
@@ -70,12 +74,14 @@ public class PanoramaMixin {
             texture,
             renderX,
             renderY,
-            renderX + renderWidth,
-            renderY + renderHeight,
+            renderWidth,
+            renderHeight,
             0.0f,
-            1.0f,
             0.0f,
-            1.0f
+            tw,
+            th,
+            tw,
+            th
         );
     }
 }

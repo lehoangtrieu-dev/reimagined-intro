@@ -66,6 +66,34 @@ processResources {
     inputs.properties(expandProps)
 }
 
+// Guards the crash reported in issue #4: when a mixin config asks for a newer
+// compatibilityLevel than the Java version the mod targets, Mixin aborts during
+// initialisation (e.g. "JAVA_25 could not be set" on a Java 21 runtime) and the
+// game never reaches the main menu. Failing the build is far cheaper than
+// shipping a jar that cannot start.
+def mixinConfigFile = file("src/main/resources/${mod_id}.mixins.json")
+if (mixinConfigFile.exists()) {
+    def expectedCompatibilityLevel = "JAVA_${java_version}"
+    def verifyMixinCompatibilityLevel = tasks.register('verifyMixinCompatibilityLevel') {
+        def configFile = mixinConfigFile
+        def expected = expectedCompatibilityLevel
+        def targetJavaVersion = java_version
+        inputs.file(configFile)
+        doLast {
+            def level = new groovy.json.JsonSlurper().parse(configFile).compatibilityLevel
+            if (level != expected) {
+                throw new GradleException(
+                        "${configFile.name} requests mixin compatibilityLevel '${level}', but this build targets Java " +
+                                "${targetJavaVersion} (expected '${expected}'). Mixin would fail to initialise on a " +
+                                "Java ${targetJavaVersion} runtime.")
+            }
+        }
+    }
+    tasks.named('processResources') {
+        dependsOn verifyMixinCompatibilityLevel
+    }
+}
+
 publishing {
     publications {
         register('mavenJava', MavenPublication) {

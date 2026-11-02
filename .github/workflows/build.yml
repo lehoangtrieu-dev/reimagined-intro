@@ -25,7 +25,9 @@ jobs:
             25
           distribution: 'microsoft'
       - name: register java 21 toolchain
-        run: echo "org.gradle.java.installations.paths=$JAVA_HOME_21_X64" >> "$HOME/.gradle/gradle.properties"
+        run: |
+          mkdir -p "$HOME/.gradle"
+          echo "org.gradle.java.installations.paths=$JAVA_HOME_21_X64" >> "$HOME/.gradle/gradle.properties"
       - name: make gradle wrapper executable
         run: chmod +x ./gradlew
       - name: build

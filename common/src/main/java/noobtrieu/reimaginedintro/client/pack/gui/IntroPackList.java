@@ -11,6 +11,7 @@ import net.minecraft.client.gui.narration.NarratableEntry;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.FormattedCharSequence;
 import noobtrieu.reimaginedintro.client.pack.IntroPack;
 import noobtrieu.reimaginedintro.client.pack.IntroPackManager;
 
@@ -251,22 +252,28 @@ public class IntroPackList extends ContainerObjectSelectionList<IntroPackList.Gr
             int badgeY = y + 5;
             List<Badge> badges = new ArrayList<>();
             if (pack.isOfficial()) {
-                badges.add(new Badge("OFFICIAL", 0xA01D4ED8, 0xC03B82F6, 0xFFFFFFFF, true));
+                badges.add(new Badge("OFFICIAL", 0xA01D4ED8, 0xC03B82F6, 0xFFFFFFFF, true,
+                    "§9Official Pack", "§7Curated and maintained by the mod author."));
             }
             if (pack.hasIntro()) {
-                badges.add(new Badge("Intro", 0x88000000, 0x40FFFFFF, 0xFF4ADE80, false));
+                badges.add(new Badge("Intro", 0x88000000, 0x40FFFFFF, 0xFF4ADE80, false,
+                    "§aStartup Intro Sequence", "§7Plays a custom fullscreen intro video on game launch."));
             }
             if (pack.hasLoop()) {
-                badges.add(new Badge("Loop", 0x88000000, 0x40FFFFFF, 0xFFFBBF24, false));
+                badges.add(new Badge("Loop", 0x88000000, 0x40FFFFFF, 0xFFFBBF24, false,
+                    "§6Title Screen Loop", "§7Replaces the title screen with an animated video loop."));
             }
             if (pack.hasAudio()) {
-                badges.add(new Badge("Audio", 0x88000000, 0x40FFFFFF, 0xFF38BDF8, false));
+                badges.add(new Badge("Audio", 0x88000000, 0x40FFFFFF, 0xFF38BDF8, false,
+                    "§bCustom Soundtrack", "§7Includes custom audio and intro music."));
             }
             if (pack.hasPanorama()) {
-                badges.add(new Badge("Pano", 0x88000000, 0x40FFFFFF, 0xFFE879F9, false));
+                badges.add(new Badge("Pano", 0x88000000, 0x40FFFFFF, 0xFFE879F9, false,
+                    "§dCustom Panorama", "§7Includes custom title screen panorama background."));
             }
             if (pack.hasPanoramaOverlay()) {
-                badges.add(new Badge("Over", 0x88000000, 0x40FFFFFF, 0xFFFACC15, false));
+                badges.add(new Badge("Over", 0x88000000, 0x40FFFFFF, 0xFFFACC15, false,
+                    "§ePanorama Overlay", "§7Includes a custom title screen vignette/overlay."));
             }
 
             int totalBadgesW = 0;
@@ -295,6 +302,16 @@ public class IntroPackList extends ContainerObjectSelectionList<IntroPackList.Gr
                 guiGraphics.fill(curBadgeX, badgeY, curBadgeX + tagW, badgeY + 11, badge.bgColor);
                 guiGraphics.outline(curBadgeX, badgeY, tagW, 11, badge.borderColor);
                 guiGraphics.text(font, textComp, curBadgeX + 5, badgeY + 1, badge.textColor);
+
+                // Contextual Micro-Tooltip on Badge Hover
+                if (mouseX >= curBadgeX && mouseX < curBadgeX + tagW && mouseY >= badgeY && mouseY < badgeY + 11) {
+                    List<Component> badgeTooltip = List.of(
+                        Component.literal(badge.tooltipTitle),
+                        Component.literal(badge.tooltipDesc)
+                    );
+                    guiGraphics.setComponentTooltipForNextFrame(font, badgeTooltip, mouseX, mouseY);
+                }
+
                 curBadgeX += tagW + 3;
             }
 
@@ -327,9 +344,10 @@ public class IntroPackList extends ContainerObjectSelectionList<IntroPackList.Gr
             }
 
             // 4. Buttons State & Render
+            int btnY = overlayY + 42;
             if (isActive) {
                 selectButton.active = false;
-                selectButton.setMessage(Component.literal("§aActive ✓"));
+                selectButton.setMessage(Component.literal("§aActive ✔"));
             } else {
                 selectButton.active = true;
                 selectButton.setMessage(Component.literal("Select"));
@@ -350,45 +368,33 @@ public class IntroPackList extends ContainerObjectSelectionList<IntroPackList.Gr
                 guiGraphics.outline(x, y, width, height, 0xFF2A2A2A);
             }
 
-            // 6. Rich Multi-line Hover Tooltip (Genuine lines without broken LF characters)
-            boolean hoveringButton = selectButton.isMouseOver(mouseX, mouseY) 
-                || (previewButton != null && previewButton.isMouseOver(mouseX, mouseY));
-            if (isCardHovered && !hoveringButton) {
-                List<Component> tooltipLines = new ArrayList<>();
-                tooltipLines.add(Component.literal("§f§l" + pack.getName()));
-                tooltipLines.add(Component.literal("§7by " + pack.getManifest().getAuthor()
-                    + " • v" + pack.getManifest().getVersion()
-                    + " • " + pack.getFps() + " FPS"));
+            // 6. Contextual Tooltips: Title & Description Hover
+            boolean isTitleHovered = mouseX >= contentX && mouseX < contentX + maxTextW 
+                && mouseY >= line1Y && mouseY < line2Y;
+            if (isTitleHovered && font.width(pack.getName()) > maxTextW) {
+                guiGraphics.setComponentTooltipForNextFrame(font, List.of(Component.literal(pack.getName())), mouseX, mouseY);
+            }
 
-                tooltipLines.add(Component.empty());
-                tooltipLines.add(Component.literal("§6Features:"));
-                if (pack.isOfficial()) {
-                    tooltipLines.add(Component.literal(" §9★ Official Release"));
-                }
-                if (pack.hasIntro()) {
-                    tooltipLines.add(Component.literal(" §a✓ Startup Intro Animation"));
-                }
-                if (pack.hasLoop()) {
-                    tooltipLines.add(Component.literal(" §6✓ Title Screen Video Loop"));
-                }
-                if (pack.hasAudio()) {
-                    tooltipLines.add(Component.literal(" §b✓ Custom Soundtrack & Audio"));
-                }
-                if (pack.hasPanorama()) {
-                    tooltipLines.add(Component.literal(" §d✓ Custom Panorama Background"));
-                }
-                if (pack.hasPanoramaOverlay()) {
-                    tooltipLines.add(Component.literal(" §e✓ Panorama Vignette Overlay"));
-                }
+            boolean isDescHovered = mouseX >= contentX && mouseX < contentX + maxTextW 
+                && mouseY >= line2Y && mouseY < btnY;
+            if (isDescHovered) {
+                List<FormattedCharSequence> descLines = new ArrayList<>();
+                descLines.add(Component.literal("§f§l" + pack.getName() + " §7(v" + pack.getManifest().getVersion() + ")").getVisualOrderText());
+                descLines.add(Component.literal("§7by " + pack.getManifest().getAuthor() + " • " + pack.getFps() + " FPS").getVisualOrderText());
 
                 if (desc != null && !desc.trim().isEmpty()) {
-                    tooltipLines.add(Component.empty());
-                    for (String dLine : desc.trim().split("\r?\n")) {
-                        tooltipLines.add(Component.literal("§f" + dLine));
+                    descLines.add(Component.empty().getVisualOrderText());
+                    int maxWrapWidth = 220;
+                    for (String paragraph : desc.trim().split("\r?\n")) {
+                        if (paragraph.trim().isEmpty()) {
+                            descLines.add(Component.empty().getVisualOrderText());
+                        } else {
+                            descLines.addAll(font.split(Component.literal("§f" + paragraph), maxWrapWidth));
+                        }
                     }
                 }
 
-                guiGraphics.setComponentTooltipForNextFrame(font, tooltipLines, mouseX, mouseY);
+                guiGraphics.setTooltipForNextFrame(font, descLines, mouseX, mouseY);
             }
         }
 
@@ -398,13 +404,17 @@ public class IntroPackList extends ContainerObjectSelectionList<IntroPackList.Gr
             final int borderColor;
             final int textColor;
             final boolean bold;
+            final String tooltipTitle;
+            final String tooltipDesc;
 
-            Badge(String text, int bgColor, int borderColor, int textColor, boolean bold) {
+            Badge(String text, int bgColor, int borderColor, int textColor, boolean bold, String tooltipTitle, String tooltipDesc) {
                 this.text = text;
                 this.bgColor = bgColor;
                 this.borderColor = borderColor;
                 this.textColor = textColor;
                 this.bold = bold;
+                this.tooltipTitle = tooltipTitle;
+                this.tooltipDesc = tooltipDesc;
             }
         }
     }

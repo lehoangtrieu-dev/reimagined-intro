@@ -109,20 +109,18 @@ public class IntroPackManager {
             ModConfig.save();
             ReimaginedIntro.LOGGER.info("Selected active intro pack: " + pack.getName() + " (" + pack.getId() + ")");
 
-            if (pack.hasPanorama()) {
-                try {
-                    Minecraft mc = Minecraft.getInstance();
-                    if (mc != null && mc.getResourceManager() != null) {
-                        net.minecraft.resources.Identifier panoId = net.minecraft.resources.Identifier.withDefaultNamespace("textures/gui/title/background/panorama");
-                        net.minecraft.client.renderer.texture.AbstractTexture tex = mc.getTextureManager().getTexture(panoId);
-                        if (tex instanceof net.minecraft.client.renderer.texture.CubeMapTexture cubeTex) {
-                            net.minecraft.client.renderer.texture.TextureContents contents = cubeTex.loadContents(mc.getResourceManager());
-                            cubeTex.apply(contents);
-                        }
+            try {
+                Minecraft mc = Minecraft.getInstance();
+                if (mc != null && mc.getResourceManager() != null) {
+                    net.minecraft.resources.Identifier panoId = net.minecraft.resources.Identifier.withDefaultNamespace("textures/gui/title/background/panorama");
+                    net.minecraft.client.renderer.texture.AbstractTexture tex = mc.getTextureManager().getTexture(panoId);
+                    if (tex instanceof net.minecraft.client.renderer.texture.CubeMapTexture cubeTex) {
+                        net.minecraft.client.renderer.texture.TextureContents contents = cubeTex.loadContents(mc.getResourceManager());
+                        cubeTex.apply(contents);
                     }
-                } catch (Throwable t) {
-                    ReimaginedIntro.LOGGER.error("Failed to reload cubemap texture for pack: " + pack.getName(), t);
                 }
+            } catch (Throwable t) {
+                ReimaginedIntro.LOGGER.error("Failed to reload cubemap texture for pack: " + pack.getName(), t);
             }
         }
     }

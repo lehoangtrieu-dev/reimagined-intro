@@ -37,14 +37,19 @@ public class PanoramaMixin {
         int textureWidth,
         int textureHeight
     ) {
-        Identifier activeTexture = texture;
         IntroPack pack = IntroPackManager.getActivePack();
-        if (pack != null && pack.hasPanoramaOverlay()) {
-            Identifier customOverlay = PanoramaOverlayManager.getOverlayTextureId();
-            if (customOverlay != null) {
-                activeTexture = customOverlay;
-            }
+        if (pack == null || !pack.hasPanoramaOverlay()) {
+            guiGraphics.blit(pipeline, texture, x, y, uOffset, vOffset, width, height, uWidth, vHeight, textureWidth, textureHeight);
+            return;
         }
+
+        Identifier customOverlay = PanoramaOverlayManager.getOverlayTextureId();
+        if (customOverlay == null) {
+            guiGraphics.blit(pipeline, texture, x, y, uOffset, vOffset, width, height, uWidth, vHeight, textureWidth, textureHeight);
+            return;
+        }
+
+        Identifier activeTexture = customOverlay;
 
         float targetAspect = 16.0f / 9.0f;
         AbstractTexture tex = Minecraft.getInstance().getTextureManager().getTexture(activeTexture);

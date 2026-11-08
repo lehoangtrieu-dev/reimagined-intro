@@ -52,6 +52,14 @@ public class IntroPackList extends ContainerObjectSelectionList<IntroPackList.Gr
         }
     }
 
+    public static String truncateWithEllipsis(Font font, String text, int maxWidth) {
+        if (text == null) return "";
+        if (font.width(text) <= maxWidth) return text;
+        int dotsW = font.width("...");
+        if (maxWidth <= dotsW) return "...";
+        return font.plainSubstrByWidth(text, maxWidth - dotsW) + "...";
+    }
+
     public static class GridRowEntry extends ContainerObjectSelectionList.Entry<GridRowEntry> {
         private final IntroPackSelectionScreen screen;
         private final IntroPackList parentList;
@@ -146,8 +154,8 @@ public class IntroPackList extends ContainerObjectSelectionList<IntroPackList.Gr
             this.narratables.add(this.selectButton);
 
             if (pack.hasIntro()) {
-                this.previewButton = Button.builder(Component.literal("▶"), b -> screen.previewPack(pack))
-                    .bounds(0, 0, 24, 20)
+                this.previewButton = Button.builder(Component.literal("Preview"), b -> screen.previewPack(pack))
+                    .bounds(0, 0, 50, 20)
                     .build();
                 this.children.add(this.previewButton);
                 this.narratables.add(this.previewButton);
@@ -180,18 +188,20 @@ public class IntroPackList extends ContainerObjectSelectionList<IntroPackList.Gr
             int contentX = x + 6;
 
             if (previewButton != null) {
-                int prevW = 26;
-                int prevX = x + width - 6 - prevW;
-                previewButton.setX(prevX);
+                int btnGap = 4;
+                int availBtnW = width - 12 - btnGap;
+                int btnW = availBtnW / 2;
+                int prevW = availBtnW - btnW;
+
+                selectButton.setX(contentX);
+                selectButton.setY(btnY);
+                selectButton.setWidth(btnW);
+                selectButton.setHeight(20);
+
+                previewButton.setX(contentX + btnW + btnGap);
                 previewButton.setY(btnY);
                 previewButton.setWidth(prevW);
                 previewButton.setHeight(20);
-
-                int selectW = prevX - contentX - 4;
-                selectButton.setX(contentX);
-                selectButton.setY(btnY);
-                selectButton.setWidth(selectW);
-                selectButton.setHeight(20);
             } else {
                 selectButton.setX(contentX);
                 selectButton.setY(btnY);
@@ -210,38 +220,80 @@ public class IntroPackList extends ContainerObjectSelectionList<IntroPackList.Gr
                 && IntroPackManager.getActivePack().getId().equals(pack.getId());
             boolean isCardHovered = isMouseOver(mouseX, mouseY);
 
-            // 1. Full Thumbnail Background (Matching HTML Mockup)
+            // 1. Full Thumbnail Background (Object-Fit: Cover, never stretched!)
             guiGraphics.fill(x, y, x + width, y + height, 0xFF141414);
 
             Identifier thumbId = screen.getThumbnailId(pack.getId());
             if (thumbId != null) {
-                guiGraphics.blit(thumbId, x, y, x + width, y + height, 0.0f, 1.0f, 0.0f, 1.0f);
+                float cardAspect = (float) width / (float) height;
+                float texAspect = 16.0f / 9.0f;
+                float u0 = 0.0f, u1 = 1.0f, v0 = 0.0f, v1 = 1.0f;
+
+                if (cardAspect > texAspect) {
+                    // Card wider than 16:9 -> fit width, crop height centered
+                    float visibleV = texAspect / cardAspect;
+                    v0 = (1.0f - visibleV) * 0.5f;
+                    v1 = 1.0f - v0;
+                } else if (cardAspect < texAspect) {
+                    // Card taller than 16:9 -> fit height, crop width centered
+                    float visibleU = cardAspect / texAspect;
+                    u0 = (1.0f - visibleU) * 0.5f;
+                    u1 = 1.0f - u0;
+                }
+
+                guiGraphics.blit(thumbId, x, y, x + width, y + height, u0, u1, v0, v1);
             } else {
                 guiGraphics.fill(x, y, x + width, y + height, 0xFF1C1C1C);
                 guiGraphics.centeredText(font, Component.literal("§7[No Preview]"), x + width / 2, y + (height - 66) / 2 - 4, 0xFF666666);
             }
 
-            // 2. Top-Right Floating Feature Badges (Option B)
-            int curBadgeX = x + width - 6;
+            // 2. Top-Right Floating Badges: [OFFICIAL] [Intro] [Loop] [Audio] [Pano] [Over]
             int badgeY = y + 5;
-
-            List<String> tags = new ArrayList<>();
-            if (pack.hasLoop()) tags.add("§6Loop");
-            if (pack.hasAudio()) tags.add("§bAudio");
-            if (pack.hasPanorama()) tags.add("§dPano");
-            if (pack.hasPanoramaOverlay()) tags.add("§eOver");
-            if (pack.hasIntro() && tags.size() < 3) tags.add("§aIntro");
-
-            for (String tag : tags) {
-                int tagW = font.width(tag) + 6;
-                curBadgeX -= tagW;
-                guiGraphics.fill(curBadgeX, badgeY, curBadgeX + tagW, badgeY + 11, 0xD0101010);
-                guiGraphics.outline(curBadgeX, badgeY, tagW, 11, 0x55FFFFFF);
-                guiGraphics.text(font, Component.literal(tag), curBadgeX + 3, badgeY + 1, 0xFFFFFFFF);
-                curBadgeX -= 3;
+            List<Badge> badges = new ArrayList<>();
+            if (pack.isOfficial()) {
+                badges.add(new Badge("OFFICIAL", 0xFF1D4ED8, 0xFF3B82F6, 0xFFFFFFFF, true));
+            }
+            if (pack.hasIntro()) {
+                badges.add(new Badge("Intro", 0xD0101010, 0x55FFFFFF, 0xFF4ADE80, false));
+            }
+            if (pack.hasLoop()) {
+                badges.add(new Badge("Loop", 0xD0101010, 0x55FFFFFF, 0xFFFBBF24, false));
+            }
+            if (pack.hasAudio()) {
+                badges.add(new Badge("Audio", 0xD0101010, 0x55FFFFFF, 0xFF38BDF8, false));
+            }
+            if (pack.hasPanorama()) {
+                badges.add(new Badge("Pano", 0xD0101010, 0x55FFFFFF, 0xFFE879F9, false));
+            }
+            if (pack.hasPanoramaOverlay()) {
+                badges.add(new Badge("Over", 0xD0101010, 0x55FFFFFF, 0xFFFACC15, false));
             }
 
-            // 3. Dark Overlay Docked at Bottom (Matching HTML)
+            int totalBadgesW = 0;
+            for (int i = 0; i < badges.size(); i++) {
+                int w = font.width(badges.get(i).text) + 6;
+                totalBadgesW += w + (i > 0 ? 3 : 0);
+            }
+
+            int curBadgeX = x + width - 6 - totalBadgesW;
+            if (curBadgeX < x + 6) {
+                curBadgeX = x + 6;
+            }
+
+            for (Badge badge : badges) {
+                int tagW = font.width(badge.text) + 6;
+                if (curBadgeX + tagW > x + width - 6) break;
+
+                guiGraphics.fill(curBadgeX, badgeY, curBadgeX + tagW, badgeY + 11, badge.bgColor);
+                guiGraphics.outline(curBadgeX, badgeY, tagW, 11, badge.borderColor);
+                Component textComp = badge.bold
+                    ? Component.literal(badge.text).withStyle(ChatFormatting.BOLD)
+                    : Component.literal(badge.text);
+                guiGraphics.text(font, textComp, curBadgeX + 3, badgeY + 1, badge.textColor);
+                curBadgeX += tagW + 3;
+            }
+
+            // 3. Dark Overlay Docked at Bottom
             int overlayHeight = 66;
             int overlayY = y + height - overlayHeight;
             guiGraphics.fill(x, overlayY, x + width, y + height, 0xEE121212);
@@ -250,32 +302,22 @@ public class IntroPackList extends ContainerObjectSelectionList<IntroPackList.Gr
             int contentX = x + 6;
             int maxTextW = width - 12;
 
-            // Line 1: Title & [OFFICIAL] badge
+            // Line 1: Title (Full 1-line with ellipsis)
             int line1Y = overlayY + 5;
-            int curTitleX = contentX;
-            if (pack.isOfficial()) {
-                int badgeW = font.width("OFFICIAL") + 6;
-                guiGraphics.fill(curTitleX, line1Y, curTitleX + badgeW, line1Y + 10, 0xFF1D4ED8);
-                guiGraphics.outline(curTitleX, line1Y, badgeW, 10, 0xFF3B82F6);
-                guiGraphics.text(font, Component.literal("OFFICIAL").withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD), curTitleX + 3, line1Y + 1, 0xFFFFFFFF);
-                curTitleX += badgeW + 4;
-            }
+            String titleStr = truncateWithEllipsis(font, pack.getName(), maxTextW);
+            guiGraphics.text(font, Component.literal(titleStr).withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD), contentX, line1Y + 1, 0xFFFFFFFF);
 
-            int availTitleW = Math.max(10, x + width - curTitleX - 6);
-            String titleStr = font.plainSubstrByWidth(pack.getName(), availTitleW);
-            guiGraphics.text(font, Component.literal(titleStr).withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD), curTitleX, line1Y + 1, 0xFFFFFFFF);
-
-            // Line 2: Author & FPS
+            // Line 2: Author & FPS (Full 1-line with ellipsis)
             int line2Y = line1Y + 12;
             String meta = "by " + pack.getManifest().getAuthor() + " • " + pack.getFps() + " FPS";
-            String trimmedMeta = font.plainSubstrByWidth(meta, maxTextW);
+            String trimmedMeta = truncateWithEllipsis(font, meta, maxTextW);
             guiGraphics.text(font, Component.literal(trimmedMeta).withStyle(ChatFormatting.GRAY), contentX, line2Y, 0xFFAAAAAA);
 
-            // Line 3: 1-Line Description Summary
+            // Line 3: 1-Line Description Summary (Full 1-line with ellipsis)
             int line3Y = line2Y + 11;
             String desc = pack.getManifest().getDescription();
-            if (desc != null && !desc.isEmpty()) {
-                String trimmedDesc = font.plainSubstrByWidth(desc, maxTextW);
+            if (desc != null && !desc.trim().isEmpty()) {
+                String trimmedDesc = truncateWithEllipsis(font, desc.trim(), maxTextW);
                 guiGraphics.text(font, Component.literal(trimmedDesc).withStyle(ChatFormatting.DARK_GRAY), contentX, line3Y, 0xFF888888);
             }
 
@@ -295,39 +337,69 @@ public class IntroPackList extends ContainerObjectSelectionList<IntroPackList.Gr
 
             // 5. Card Outline Borders
             if (isActive) {
-                // Radiant Emerald Green Outline
                 guiGraphics.outline(x, y, width, height, 0xFF22C55E);
                 guiGraphics.outline(x + 1, y + 1, width - 2, height - 2, 0xFF16A34A);
             } else if (isCardHovered) {
-                // Crisp White Outline
                 guiGraphics.outline(x, y, width, height, 0xFFFFFFFF);
             } else {
-                // Dark Outline
                 guiGraphics.outline(x, y, width, height, 0xFF2A2A2A);
             }
 
-            // 6. Rich Hover Tooltip (Full description & feature breakdown)
+            // 6. Rich Multi-line Hover Tooltip (Genuine lines without broken LF characters)
             boolean hoveringButton = selectButton.isMouseOver(mouseX, mouseY) 
                 || (previewButton != null && previewButton.isMouseOver(mouseX, mouseY));
             if (isCardHovered && !hoveringButton) {
-                StringBuilder sb = new StringBuilder();
-                sb.append("§f§l").append(pack.getName()).append("\n");
-                sb.append("§7by ").append(pack.getManifest().getAuthor())
-                  .append(" • v").append(pack.getManifest().getVersion())
-                  .append(" • ").append(pack.getFps()).append(" FPS\n");
-                
-                sb.append("\n§6Features:\n");
-                if (pack.hasIntro()) sb.append(" §a✓ Startup Intro Animation\n");
-                if (pack.hasLoop()) sb.append(" §6✓ Title Screen Video Loop\n");
-                if (pack.hasAudio()) sb.append(" §b✓ Custom Soundtrack & Audio\n");
-                if (pack.hasPanorama()) sb.append(" §d✓ Custom Panorama Background\n");
-                if (pack.hasPanoramaOverlay()) sb.append(" §e✓ Panorama Vignette Overlay\n");
+                List<Component> tooltipLines = new ArrayList<>();
+                tooltipLines.add(Component.literal("§f§l" + pack.getName()));
+                tooltipLines.add(Component.literal("§7by " + pack.getManifest().getAuthor()
+                    + " • v" + pack.getManifest().getVersion()
+                    + " • " + pack.getFps() + " FPS"));
 
-                if (desc != null && !desc.trim().isEmpty()) {
-                    sb.append("\n§f").append(desc.trim());
+                tooltipLines.add(Component.empty());
+                tooltipLines.add(Component.literal("§6Features:"));
+                if (pack.isOfficial()) {
+                    tooltipLines.add(Component.literal(" §9★ Official Release"));
+                }
+                if (pack.hasIntro()) {
+                    tooltipLines.add(Component.literal(" §a✓ Startup Intro Animation"));
+                }
+                if (pack.hasLoop()) {
+                    tooltipLines.add(Component.literal(" §6✓ Title Screen Video Loop"));
+                }
+                if (pack.hasAudio()) {
+                    tooltipLines.add(Component.literal(" §b✓ Custom Soundtrack & Audio"));
+                }
+                if (pack.hasPanorama()) {
+                    tooltipLines.add(Component.literal(" §d✓ Custom Panorama Background"));
+                }
+                if (pack.hasPanoramaOverlay()) {
+                    tooltipLines.add(Component.literal(" §e✓ Panorama Vignette Overlay"));
                 }
 
-                guiGraphics.setTooltipForNextFrame(Component.literal(sb.toString().trim()), mouseX, mouseY);
+                if (desc != null && !desc.trim().isEmpty()) {
+                    tooltipLines.add(Component.empty());
+                    for (String dLine : desc.trim().split("\r?\n")) {
+                        tooltipLines.add(Component.literal("§f" + dLine));
+                    }
+                }
+
+                guiGraphics.setComponentTooltipForNextFrame(font, tooltipLines, mouseX, mouseY);
+            }
+        }
+
+        private static class Badge {
+            final String text;
+            final int bgColor;
+            final int borderColor;
+            final int textColor;
+            final boolean bold;
+
+            Badge(String text, int bgColor, int borderColor, int textColor, boolean bold) {
+                this.text = text;
+                this.bgColor = bgColor;
+                this.borderColor = borderColor;
+                this.textColor = textColor;
+                this.bold = bold;
             }
         }
     }

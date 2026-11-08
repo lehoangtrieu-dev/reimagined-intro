@@ -52,26 +52,27 @@ public class IntroPackSelectionScreen extends Screen {
         int listY = 44;
         int listHeight = this.height - listY - 34;
         this.packList = this.addRenderableWidget(
-            new IntroPackList(this, this.minecraft, this.width, listHeight, listY, 68)
+            new IntroPackList(this, this.minecraft, this.width, listHeight, listY, 142)
         );
 
         // 2. Header Bar Widgets
-        int totalHeaderW = 340;
+        int totalHeaderW = Math.min(460, this.width - 40);
         int headerStartX = (this.width - totalHeaderW) / 2;
+        int searchW = totalHeaderW - 145;
 
-        this.searchBox = new EditBox(this.font, headerStartX, 20, 175, 20, Component.literal("Search"));
+        this.searchBox = new EditBox(this.font, headerStartX, 20, searchW, 20, Component.literal("Search"));
         this.searchBox.setHint(Component.literal("Search intros...").withStyle(ChatFormatting.GRAY));
         this.searchBox.setResponder(this::onSearchChanged);
         this.addRenderableWidget(this.searchBox);
 
         this.openFolderButton = Button.builder(Component.literal("Open Folder 📁"), b -> openIntrosFolder())
-            .bounds(headerStartX + 180, 20, 110, 20)
+            .bounds(headerStartX + searchW + 6, 20, 110, 20)
             .tooltip(Tooltip.create(Component.literal("Open .minecraft/intros/ in file explorer")))
             .build();
         this.addRenderableWidget(this.openFolderButton);
 
         this.refreshButton = Button.builder(Component.literal("🔄"), b -> refreshPacks())
-            .bounds(headerStartX + 295, 20, 24, 20)
+            .bounds(headerStartX + searchW + 121, 20, 24, 20)
             .tooltip(Tooltip.create(Component.literal("Re-scan intros directory")))
             .build();
         this.addRenderableWidget(this.refreshButton);

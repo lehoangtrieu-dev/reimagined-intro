@@ -5,6 +5,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.Identifier;
 import noobtrieu.reimaginedintro.ReimaginedIntro;
+import noobtrieu.reimaginedintro.client.pack.IntroPack;
+import noobtrieu.reimaginedintro.client.pack.IntroPackManager;
 
 import java.io.InputStream;
 import java.util.concurrent.ConcurrentHashMap;
@@ -13,10 +15,6 @@ import java.util.concurrent.Executors;
 
 public class FrameStreamer {
     public static final Identifier TEXTURE_ID = ReimaginedIntro.id("active_frame");
-    public static final int INTRO_FRAME_COUNT = 161;
-    public static final int LOOP_FRAME_COUNT = 238;
-    public static final long FRAME_DURATION_MS = 40; // 25 FPS
-    public static final long INTRO_TOTAL_DURATION_MS = INTRO_FRAME_COUNT * FRAME_DURATION_MS; // 6440 ms
 
     private static DynamicTexture dynamicTexture;
     private static int lastUploadedFrame = -1;
@@ -31,13 +29,39 @@ public class FrameStreamer {
         return t;
     });
 
+    public static int getIntroFrameCount() {
+        IntroPack pack = IntroPackManager.getActivePack();
+        return (pack != null && pack.hasIntro()) ? pack.getIntroFrameCount() : 0;
+    }
+
+    public static int getLoopFrameCount() {
+        IntroPack pack = IntroPackManager.getActivePack();
+        return (pack != null && pack.hasLoop()) ? pack.getLoopFrameCount() : 0;
+    }
+
+    public static long getFrameDurationMs() {
+        IntroPack pack = IntroPackManager.getActivePack();
+        return pack != null ? pack.getFrameDurationMs() : 40L;
+    }
+
+    public static long getIntroTotalDurationMs() {
+        IntroPack pack = IntroPackManager.getActivePack();
+        return (pack != null && pack.hasIntro()) ? pack.getIntroDurationMs() : 0L;
+    }
+
     public static synchronized void init() {
         if (initialized) return;
 
-        // Dynamically detect frame resolution (e.g. 2560x1440 Standard vs 1920x1080 Lite)
-        NativeImage firstFrame = loadFrame(false, 1);
-        int width = firstFrame != null ? firstFrame.getWidth() : 2560;
-        int height = firstFrame != null ? firstFrame.getHeight() : 1440;
+        IntroPack pack = IntroPackManager.getActivePack();
+        if (pack == null || (!pack.hasIntro() && !pack.hasLoop())) {
+            initialized = true;
+            return;
+        }
+
+        boolean startWithLoop = !pack.hasIntro() && pack.hasLoop();
+        NativeImage firstFrame = loadFrame(startWithLoop, 1);
+        int width = firstFrame != null ? firstFrame.getWidth() : 1920;
+        int height = firstFrame != null ? firstFrame.getHeight() : 1080;
 
         dynamicTexture = new SmoothDynamicTexture("reimagined_frame", width, height, false);
         Minecraft.getInstance().getTextureManager().register(TEXTURE_ID, dynamicTexture);
@@ -45,37 +69,53 @@ public class FrameStreamer {
         lastUploadedFrame = -1;
 
         if (firstFrame != null) {
-            predecodedCache.put(cacheKey(false, 1), firstFrame);
+            predecodedCache.put(cacheKey(startWithLoop, 1), firstFrame);
+            uploadFrame(startWithLoop, 1);
+            lastUploadedFrame = 1;
         }
 
-        // Start prefetching the next intro frames
-        prefetchUpcoming(false, 2, 5);
+        // Start prefetching upcoming frames
+        prefetchUpcoming(startWithLoop, 2, Math.min(5, startWithLoop ? pack.getLoopFrameCount() : pack.getIntroFrameCount()));
     }
 
     public static void loadLastIntroFrame() {
         if (!initialized) init();
-        uploadFrame(false, INTRO_FRAME_COUNT);
-        lastUploadedFrame = INTRO_FRAME_COUNT;
+        int introCount = getIntroFrameCount();
+        if (introCount > 0) {
+            uploadFrame(false, introCount);
+            lastUploadedFrame = introCount;
+        }
     }
 
     public static void warmupLoop() {
-        prefetchUpcoming(true, 1, 4);
+        int loopCount = getLoopFrameCount();
+        if (loopCount > 0) {
+            prefetchUpcoming(true, 1, Math.min(4, loopCount));
+        }
     }
 
     public static void update(long elapsedMs) {
         if (!initialized) init();
 
-        boolean inLoop = elapsedMs >= INTRO_TOTAL_DURATION_MS;
+        int introCount = getIntroFrameCount();
+        int loopCount = getLoopFrameCount();
+        long introDuration = getIntroTotalDurationMs();
+        long frameDuration = getFrameDurationMs();
+
+        boolean inLoop = introCount == 0 || elapsedMs >= introDuration;
         int targetFrame;
 
         if (!inLoop) {
             isLoopingPhase = false;
-            targetFrame = (int) (elapsedMs / FRAME_DURATION_MS) + 1;
-            if (targetFrame > INTRO_FRAME_COUNT) targetFrame = INTRO_FRAME_COUNT;
+            targetFrame = (int) (elapsedMs / frameDuration) + 1;
+            if (targetFrame > introCount) targetFrame = introCount;
         } else {
+            if (loopCount <= 0) {
+                return;
+            }
             isLoopingPhase = true;
-            long loopElapsed = elapsedMs - INTRO_TOTAL_DURATION_MS;
-            targetFrame = (int) ((loopElapsed / FRAME_DURATION_MS) % LOOP_FRAME_COUNT) + 1;
+            long loopElapsed = introCount > 0 ? (elapsedMs - introDuration) : elapsedMs;
+            targetFrame = (int) ((loopElapsed / frameDuration) % loopCount) + 1;
         }
 
         if (targetFrame != lastUploadedFrame) {
@@ -89,14 +129,15 @@ public class FrameStreamer {
             prefetchUpcoming(inLoop, targetFrame + 1, targetFrame + 4);
 
             // If nearing end of intro, prefetch loop start frames in the background
-            if (!inLoop && targetFrame >= INTRO_FRAME_COUNT - 8) {
-                prefetchUpcoming(true, 1, 4);
+            if (!inLoop && introCount > 0 && targetFrame >= introCount - 8 && loopCount > 0) {
+                prefetchUpcoming(true, 1, Math.min(4, loopCount));
             }
         }
     }
 
     private static void pruneStaleFrames(boolean isLoop, int currentFrame) {
         if (predecodedCache.isEmpty()) return;
+        int loopCount = getLoopFrameCount();
 
         predecodedCache.entrySet().removeIf(entry -> {
             String key = entry.getKey();
@@ -118,7 +159,8 @@ public class FrameStreamer {
                 if (!isLoop) {
                     isStale = frame < currentFrame;
                 } else {
-                    int distance = (frame - currentFrame + LOOP_FRAME_COUNT) % LOOP_FRAME_COUNT;
+                    if (loopCount <= 0) return true;
+                    int distance = (frame - currentFrame + loopCount) % loopCount;
                     isStale = distance > 8;
                 }
 
@@ -142,7 +184,16 @@ public class FrameStreamer {
             image = loadFrame(isLoop, frameIndex);
         }
 
-        if (image != null && dynamicTexture != null) {
+        if (image != null) {
+            if (dynamicTexture == null || dynamicTexture.getPixels() == null
+                || dynamicTexture.getPixels().getWidth() != image.getWidth()
+                || dynamicTexture.getPixels().getHeight() != image.getHeight()) {
+                if (dynamicTexture != null) {
+                    dynamicTexture.close();
+                }
+                dynamicTexture = new SmoothDynamicTexture("reimagined_frame", image.getWidth(), image.getHeight(), false);
+                Minecraft.getInstance().getTextureManager().register(TEXTURE_ID, dynamicTexture);
+            }
             dynamicTexture.setPixels(image);
             dynamicTexture.upload();
         }
@@ -150,9 +201,10 @@ public class FrameStreamer {
 
     private static void prefetchUpcoming(boolean isLoop, int startFrame, int endFrame) {
         prefetchExecutor.submit(() -> {
-            int max = isLoop ? LOOP_FRAME_COUNT : INTRO_FRAME_COUNT;
+            int max = isLoop ? getLoopFrameCount() : getIntroFrameCount();
+            if (max <= 0) return;
             for (int f = startFrame; f <= endFrame; f++) {
-                int frame = isLoop ? (((f - 1) % LOOP_FRAME_COUNT) + 1) : Math.min(f, max);
+                int frame = isLoop ? (((f - 1) % max) + 1) : Math.min(f, max);
                 String key = cacheKey(isLoop, frame);
                 if (!predecodedCache.containsKey(key)) {
                     NativeImage img = loadFrame(isLoop, frame);
@@ -165,21 +217,15 @@ public class FrameStreamer {
     }
 
     private static NativeImage loadFrame(boolean isLoop, int frameIndex) {
-        String base = isLoop ? "loop" : "intro";
-        String jpgPath = String.format("/assets/reimagined-intro/textures/%s/frame_%04d.jpg", base, frameIndex);
-        String pngPath = String.format("/assets/reimagined-intro/textures/%s/frame_%04d.png", base, frameIndex);
+        IntroPack pack = IntroPackManager.getActivePack();
+        if (pack == null) return null;
 
-        InputStream stream = ReimaginedIntro.class.getResourceAsStream(jpgPath);
-        if (stream == null) {
-            stream = ReimaginedIntro.class.getResourceAsStream(pngPath);
-        }
-
-        if (stream != null) {
-            try (InputStream is = stream) {
-                return NativeImageDecoder.decode(is);
-            } catch (Throwable e) {
-                ReimaginedIntro.LOGGER.error("Failed to decode frame: " + base + " #" + frameIndex, e);
+        try (InputStream stream = isLoop ? pack.openLoopFrame(frameIndex) : pack.openIntroFrame(frameIndex)) {
+            if (stream != null) {
+                return NativeImageDecoder.decode(stream);
             }
+        } catch (Throwable e) {
+            ReimaginedIntro.LOGGER.error("Failed to decode " + (isLoop ? "loop" : "intro") + " frame #" + frameIndex + " from pack " + pack.getName(), e);
         }
         return null;
     }
@@ -196,7 +242,7 @@ public class FrameStreamer {
         return isLoopingPhase;
     }
 
-    public static void cleanup() {
+    public static synchronized void cleanup() {
         predecodedCache.values().forEach(NativeImage::close);
         predecodedCache.clear();
         if (dynamicTexture != null) {

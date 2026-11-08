@@ -16,6 +16,7 @@ public class ModConfig {
     public boolean enableTitleScreenLoop = true;
     public boolean showSkipPrompt = true;
     public boolean ignoreLegacyWarning = false;
+    public String selectedPack = "mojang_reimagined";
 
     private static ModConfig INSTANCE;
     private static final Path CONFIG_FILE = Services.PLATFORM.getConfigDir().resolve("reimagined-intro.json");

@@ -6,7 +6,9 @@
 		"TitleScreenMixin",
 		"ScreenMixin",
 		"PanoramaMixin",
-		"LoadingOverlayMixin"
+		"LoadingOverlayMixin",
+		"CubeMapTextureMixin",
+		"SoundBufferLibraryMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

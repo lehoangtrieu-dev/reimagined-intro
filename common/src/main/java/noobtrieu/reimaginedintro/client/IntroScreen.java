@@ -29,8 +29,9 @@ public class IntroScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
         long elapsed = IntroManager.getElapsedMs();
-        boolean finished = elapsed >= FrameStreamer.INTRO_TOTAL_DURATION_MS;
-        long renderElapsed = finished ? FrameStreamer.INTRO_TOTAL_DURATION_MS : elapsed;
+        long introDuration = FrameStreamer.getIntroTotalDurationMs();
+        boolean finished = elapsed >= introDuration;
+        long renderElapsed = finished ? introDuration : elapsed;
 
         // Update active texture
         FrameStreamer.update(renderElapsed);

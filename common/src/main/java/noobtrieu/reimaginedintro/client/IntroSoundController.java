@@ -6,12 +6,19 @@ import net.minecraft.client.resources.sounds.SoundInstance;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import noobtrieu.reimaginedintro.ReimaginedIntro;
+import noobtrieu.reimaginedintro.client.pack.IntroPack;
+import noobtrieu.reimaginedintro.client.pack.IntroPackManager;
 
 public class IntroSoundController {
     private static SimpleSoundInstance currentSound = null;
     private static boolean playingIntro = false;
 
     public static void play() {
+        IntroPack pack = IntroPackManager.getActivePack();
+        if (pack == null || !pack.hasAudio()) {
+            return;
+        }
+
         if (currentSound != null && Minecraft.getInstance().getSoundManager().isActive(currentSound)) {
             return;
         }

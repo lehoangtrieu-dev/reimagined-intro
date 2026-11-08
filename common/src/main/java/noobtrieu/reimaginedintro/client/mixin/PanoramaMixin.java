@@ -6,6 +6,9 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.Panorama;
 import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.resources.Identifier;
+import noobtrieu.reimaginedintro.client.PanoramaOverlayManager;
+import noobtrieu.reimaginedintro.client.pack.IntroPack;
+import noobtrieu.reimaginedintro.client.pack.IntroPackManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -34,14 +37,23 @@ public class PanoramaMixin {
         int textureWidth,
         int textureHeight
     ) {
+        Identifier activeTexture = texture;
+        IntroPack pack = IntroPackManager.getActivePack();
+        if (pack != null && pack.hasPanoramaOverlay()) {
+            Identifier customOverlay = PanoramaOverlayManager.getOverlayTextureId();
+            if (customOverlay != null) {
+                activeTexture = customOverlay;
+            }
+        }
+
         float targetAspect = 16.0f / 9.0f;
-        AbstractTexture tex = Minecraft.getInstance().getTextureManager().getTexture(texture);
+        AbstractTexture tex = Minecraft.getInstance().getTextureManager().getTexture(activeTexture);
         if (tex != null && tex.getTexture() != null) {
             int tw = tex.getTexture().getWidth(0);
             int th = tex.getTexture().getHeight(0);
             if (tw == 16 && th == 128) {
                 // Vanilla default 16x128 gradient: stretch as normal
-                guiGraphics.blit(pipeline, texture, x, y, uOffset, vOffset, width, height, uWidth, vHeight, textureWidth, textureHeight);
+                guiGraphics.blit(pipeline, activeTexture, x, y, uOffset, vOffset, width, height, uWidth, vHeight, textureWidth, textureHeight);
                 return;
             }
             if (tw > 0 && th > 0) {
@@ -67,7 +79,7 @@ public class PanoramaMixin {
         }
 
         guiGraphics.blit(
-            texture,
+            activeTexture,
             renderX,
             renderY,
             renderX + renderWidth,

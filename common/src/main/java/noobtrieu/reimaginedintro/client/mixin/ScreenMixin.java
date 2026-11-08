@@ -7,6 +7,7 @@ import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.input.KeyEvent;
 import noobtrieu.reimaginedintro.client.IntroManager;
 import noobtrieu.reimaginedintro.client.IntroScreen;
+import noobtrieu.reimaginedintro.client.pack.IntroPackManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -18,9 +19,11 @@ public abstract class ScreenMixin {
     private void onKeyPressed(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
         if ((Object) this instanceof TitleScreen) {
             if (event.key() == InputConstants.KEY_F6) {
-                IntroManager.resetForReplay();
-                Minecraft.getInstance().gui.setScreen(new IntroScreen());
-                cir.setReturnValue(true);
+                if (IntroPackManager.getActivePack().hasIntro()) {
+                    IntroManager.resetForReplay();
+                    Minecraft.getInstance().gui.setScreen(new IntroScreen());
+                    cir.setReturnValue(true);
+                }
             } else if (event.key() == InputConstants.KEY_F7) {
                 Minecraft.getInstance().gui.setScreen(new noobtrieu.reimaginedintro.client.config.ModConfigScreen((Screen) (Object) this));
                 cir.setReturnValue(true);

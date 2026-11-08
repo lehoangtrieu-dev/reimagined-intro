@@ -6,6 +6,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.LoadingOverlay;
 import net.minecraft.resources.Identifier;
 import noobtrieu.reimaginedintro.client.config.ModConfig;
+import noobtrieu.reimaginedintro.client.pack.IntroPackManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
@@ -34,7 +35,7 @@ public abstract class LoadingOverlayMixin {
         int textureHeight,
         int tintColor
     ) {
-        // Suppress Mojang logo on splash screen when custom intro is enabled
-        return !ModConfig.get().enableIntro;
+        // Suppress Mojang logo on splash screen when custom intro is enabled and pack has intro
+        return !(ModConfig.get().enableIntro && IntroPackManager.getActivePack().hasIntro());
     }
 }

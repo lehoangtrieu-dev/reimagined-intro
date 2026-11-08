@@ -3,6 +3,8 @@ package noobtrieu.reimaginedintro.client;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.TitleScreen;
 import noobtrieu.reimaginedintro.ReimaginedIntro;
+import noobtrieu.reimaginedintro.client.pack.IntroPack;
+import noobtrieu.reimaginedintro.client.pack.IntroPackManager;
 
 public class IntroManager {
     private static long startTimeMs = -1;
@@ -11,7 +13,15 @@ public class IntroManager {
 
     public static synchronized void startIntro() {
         if (startTimeMs == -1) {
-            ReimaginedIntro.LOGGER.info("[ReimaginedIntro] Starting intro sequence and audio.");
+            IntroPack activePack = IntroPackManager.getActivePack();
+            if (activePack == null || !activePack.hasIntro()) {
+                ReimaginedIntro.LOGGER.info("[ReimaginedIntro] Active pack has no intro animation. Skipping directly to TitleScreen.");
+                hasPlayed = true;
+                skipped = true;
+                return;
+            }
+
+            ReimaginedIntro.LOGGER.info("[ReimaginedIntro] Starting intro sequence for pack: " + activePack.getName());
             startTimeMs = System.currentTimeMillis();
             FrameStreamer.init();
             IntroSoundController.play();
@@ -21,14 +31,18 @@ public class IntroManager {
     public static long getElapsedMs() {
         if (startTimeMs == -1) {
             // If somehow accessed directly on TitleScreen before startIntro, initialize to loop
-            startTimeMs = System.currentTimeMillis() - FrameStreamer.INTRO_TOTAL_DURATION_MS;
+            startTimeMs = System.currentTimeMillis() - FrameStreamer.getIntroTotalDurationMs();
             FrameStreamer.init();
         }
         return System.currentTimeMillis() - startTimeMs;
     }
 
     public static boolean isIntroComplete() {
-        return skipped || (startTimeMs != -1 && getElapsedMs() >= FrameStreamer.INTRO_TOTAL_DURATION_MS);
+        IntroPack activePack = IntroPackManager.getActivePack();
+        if (activePack == null || !activePack.hasIntro()) {
+            return true;
+        }
+        return skipped || (startTimeMs != -1 && getElapsedMs() >= FrameStreamer.getIntroTotalDurationMs());
     }
 
     public static boolean hasPlayed() {
@@ -45,7 +59,7 @@ public class IntroManager {
             skipped = true;
             IntroSoundController.stop();
             // Jump timeline to start of loop
-            startTimeMs = System.currentTimeMillis() - FrameStreamer.INTRO_TOTAL_DURATION_MS;
+            startTimeMs = System.currentTimeMillis() - FrameStreamer.getIntroTotalDurationMs();
             hasPlayed = true;
             FrameStreamer.warmupLoop();
             FrameStreamer.loadLastIntroFrame();
@@ -59,13 +73,17 @@ public class IntroManager {
         ReimaginedIntro.LOGGER.info("[ReimaginedIntro] Intro finished naturally. Transitioning to TitleScreen.");
         hasPlayed = true;
         // Align timeline so loop begins smoothly at frame 1 without jump
-        startTimeMs = System.currentTimeMillis() - FrameStreamer.INTRO_TOTAL_DURATION_MS;
+        startTimeMs = System.currentTimeMillis() - FrameStreamer.getIntroTotalDurationMs();
         FrameStreamer.loadLastIntroFrame();
         Minecraft.getInstance().gui.setScreen(new TitleScreen(true));
     }
 
     public static void resetForReplay() {
-        ReimaginedIntro.LOGGER.info("[ReimaginedIntro] Replaying intro.");
+        IntroPack activePack = IntroPackManager.getActivePack();
+        if (activePack == null || !activePack.hasIntro()) {
+            return;
+        }
+        ReimaginedIntro.LOGGER.info("[ReimaginedIntro] Replaying intro for pack: " + activePack.getName());
         IntroSoundController.stop();
         startTimeMs = -1;
         skipped = false;

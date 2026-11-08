@@ -3,6 +3,7 @@ package noobtrieu.reimaginedintro;
 import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
 import noobtrieu.reimaginedintro.client.migration.LegacyMigrationHandler;
+import noobtrieu.reimaginedintro.client.pack.IntroPackManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,6 +16,7 @@ public class ReimaginedIntro {
 
 	public static void init() {
 		LegacyMigrationHandler.checkAndPrompt();
+		IntroPackManager.init();
 	}
 
 	public static Identifier id(String path) {

@@ -218,20 +218,6 @@ public class IntroPackSelectionScreen extends Screen {
     }
 
     @Override
-    public void extractBackground(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
-        // Dark Atmospheric Canvas Backdrop
-        guiGraphics.fill(0, 0, this.width, this.height, 0xD0101010);
-
-        // Header Top Bar
-        guiGraphics.fill(0, 0, this.width, 44, 0xF0181818);
-        guiGraphics.fill(0, 43, this.width, 44, 0xFF333333);
-
-        // Footer Bottom Bar
-        guiGraphics.fill(0, this.height - 34, this.width, this.height, 0xF0181818);
-        guiGraphics.fill(0, this.height - 35, this.width, this.height - 34, 0xFF333333);
-    }
-
-    @Override
     public void extractRenderState(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
         super.extractRenderState(guiGraphics, mouseX, mouseY, partialTick);
 

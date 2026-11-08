@@ -251,27 +251,31 @@ public class IntroPackList extends ContainerObjectSelectionList<IntroPackList.Gr
             int badgeY = y + 5;
             List<Badge> badges = new ArrayList<>();
             if (pack.isOfficial()) {
-                badges.add(new Badge("OFFICIAL", 0xFF1D4ED8, 0xFF3B82F6, 0xFFFFFFFF, true));
+                badges.add(new Badge("OFFICIAL", 0xA01D4ED8, 0xC03B82F6, 0xFFFFFFFF, true));
             }
             if (pack.hasIntro()) {
-                badges.add(new Badge("Intro", 0xD0101010, 0x55FFFFFF, 0xFF4ADE80, false));
+                badges.add(new Badge("Intro", 0x88000000, 0x40FFFFFF, 0xFF4ADE80, false));
             }
             if (pack.hasLoop()) {
-                badges.add(new Badge("Loop", 0xD0101010, 0x55FFFFFF, 0xFFFBBF24, false));
+                badges.add(new Badge("Loop", 0x88000000, 0x40FFFFFF, 0xFFFBBF24, false));
             }
             if (pack.hasAudio()) {
-                badges.add(new Badge("Audio", 0xD0101010, 0x55FFFFFF, 0xFF38BDF8, false));
+                badges.add(new Badge("Audio", 0x88000000, 0x40FFFFFF, 0xFF38BDF8, false));
             }
             if (pack.hasPanorama()) {
-                badges.add(new Badge("Pano", 0xD0101010, 0x55FFFFFF, 0xFFE879F9, false));
+                badges.add(new Badge("Pano", 0x88000000, 0x40FFFFFF, 0xFFE879F9, false));
             }
             if (pack.hasPanoramaOverlay()) {
-                badges.add(new Badge("Over", 0xD0101010, 0x55FFFFFF, 0xFFFACC15, false));
+                badges.add(new Badge("Over", 0x88000000, 0x40FFFFFF, 0xFFFACC15, false));
             }
 
             int totalBadgesW = 0;
             for (int i = 0; i < badges.size(); i++) {
-                int w = font.width(badges.get(i).text) + 6;
+                Badge b = badges.get(i);
+                Component comp = b.bold
+                    ? Component.literal(b.text).withStyle(ChatFormatting.BOLD)
+                    : Component.literal(b.text);
+                int w = font.width(comp) + 10;
                 totalBadgesW += w + (i > 0 ? 3 : 0);
             }
 
@@ -281,23 +285,24 @@ public class IntroPackList extends ContainerObjectSelectionList<IntroPackList.Gr
             }
 
             for (Badge badge : badges) {
-                int tagW = font.width(badge.text) + 6;
+                Component textComp = badge.bold
+                    ? Component.literal(badge.text).withStyle(ChatFormatting.BOLD)
+                    : Component.literal(badge.text);
+                int textW = font.width(textComp);
+                int tagW = textW + 10;
                 if (curBadgeX + tagW > x + width - 6) break;
 
                 guiGraphics.fill(curBadgeX, badgeY, curBadgeX + tagW, badgeY + 11, badge.bgColor);
                 guiGraphics.outline(curBadgeX, badgeY, tagW, 11, badge.borderColor);
-                Component textComp = badge.bold
-                    ? Component.literal(badge.text).withStyle(ChatFormatting.BOLD)
-                    : Component.literal(badge.text);
-                guiGraphics.text(font, textComp, curBadgeX + 3, badgeY + 1, badge.textColor);
+                guiGraphics.text(font, textComp, curBadgeX + 5, badgeY + 1, badge.textColor);
                 curBadgeX += tagW + 3;
             }
 
-            // 3. Dark Overlay Docked at Bottom
+            // 3. Dark Overlay Docked at Bottom (Soft Translucency)
             int overlayHeight = 66;
             int overlayY = y + height - overlayHeight;
-            guiGraphics.fill(x, overlayY, x + width, y + height, 0xEE121212);
-            guiGraphics.fill(x, overlayY, x + width, overlayY + 1, 0x40FFFFFF);
+            guiGraphics.fill(x, overlayY, x + width, y + height, 0xB8101010);
+            guiGraphics.fill(x, overlayY, x + width, overlayY + 1, 0x30FFFFFF);
 
             int contentX = x + 6;
             int maxTextW = width - 12;

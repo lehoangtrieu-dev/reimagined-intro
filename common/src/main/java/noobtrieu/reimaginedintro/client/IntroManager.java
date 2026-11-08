@@ -1,6 +1,7 @@
 package noobtrieu.reimaginedintro.client;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import noobtrieu.reimaginedintro.ReimaginedIntro;
 import noobtrieu.reimaginedintro.client.pack.IntroPack;
@@ -10,6 +11,15 @@ public class IntroManager {
     private static long startTimeMs = -1;
     private static boolean hasPlayed = false;
     private static boolean skipped = false;
+    private static Screen returnScreen = null;
+
+    public static synchronized void setReturnScreen(Screen screen) {
+        returnScreen = screen;
+    }
+
+    public static Screen getReturnScreen() {
+        return returnScreen;
+    }
 
     public static synchronized void startIntro() {
         if (startTimeMs == -1) {
@@ -18,6 +28,11 @@ public class IntroManager {
                 ReimaginedIntro.LOGGER.info("[ReimaginedIntro] Active pack has no intro animation. Skipping directly to TitleScreen.");
                 hasPlayed = true;
                 skipped = true;
+                if (returnScreen != null) {
+                    Screen back = returnScreen;
+                    returnScreen = null;
+                    Minecraft.getInstance().gui.setScreen(back);
+                }
                 return;
             }
 
@@ -64,18 +79,30 @@ public class IntroManager {
             FrameStreamer.warmupLoop();
             FrameStreamer.loadLastIntroFrame();
 
-            // Transition directly to TitleScreen with smooth UI fade-in
-            Minecraft.getInstance().gui.setScreen(new TitleScreen(true));
+            if (returnScreen != null) {
+                Screen back = returnScreen;
+                returnScreen = null;
+                Minecraft.getInstance().gui.setScreen(back);
+            } else {
+                Minecraft.getInstance().gui.setScreen(new TitleScreen(true));
+            }
         }
     }
 
     public static void onIntroFinished() {
-        ReimaginedIntro.LOGGER.info("[ReimaginedIntro] Intro finished naturally. Transitioning to TitleScreen.");
+        ReimaginedIntro.LOGGER.info("[ReimaginedIntro] Intro finished naturally.");
         hasPlayed = true;
         // Align timeline so loop begins smoothly at frame 1 without jump
         startTimeMs = System.currentTimeMillis() - FrameStreamer.getIntroTotalDurationMs();
         FrameStreamer.loadLastIntroFrame();
-        Minecraft.getInstance().gui.setScreen(new TitleScreen(true));
+
+        if (returnScreen != null) {
+            Screen back = returnScreen;
+            returnScreen = null;
+            Minecraft.getInstance().gui.setScreen(back);
+        } else {
+            Minecraft.getInstance().gui.setScreen(new TitleScreen(true));
+        }
     }
 
     public static void resetForReplay() {

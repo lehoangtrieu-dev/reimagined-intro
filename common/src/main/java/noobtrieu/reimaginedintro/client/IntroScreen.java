@@ -9,8 +9,15 @@ import net.minecraft.network.chat.Component;
 import noobtrieu.reimaginedintro.client.config.ModConfig;
 
 public class IntroScreen extends Screen {
+    private final Screen returnScreen;
+
     public IntroScreen() {
+        this(null);
+    }
+
+    public IntroScreen(Screen returnScreen) {
         super(Component.literal("Reimagined Intro"));
+        this.returnScreen = returnScreen;
     }
 
     @Override
@@ -18,6 +25,9 @@ public class IntroScreen extends Screen {
         super.init();
         // Clear any remaining red loading overlay so it doesn't flash over the intro
         Minecraft.getInstance().gui.setOverlay(null);
+        if (returnScreen != null) {
+            IntroManager.setReturnScreen(returnScreen);
+        }
         IntroManager.startIntro();
     }
 

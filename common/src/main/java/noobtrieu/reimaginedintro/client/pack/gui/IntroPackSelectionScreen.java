@@ -65,13 +65,13 @@ public class IntroPackSelectionScreen extends Screen {
         this.searchBox.setResponder(this::onSearchChanged);
         this.addRenderableWidget(this.searchBox);
 
-        this.openFolderButton = Button.builder(Component.literal("Open Folder 📁"), b -> openIntrosFolder())
+        this.openFolderButton = Button.builder(Component.literal("Open Folder"), b -> openIntrosFolder())
             .bounds(headerStartX + searchW + 6, 20, 110, 20)
             .tooltip(Tooltip.create(Component.literal("Open .minecraft/intros/ in file explorer")))
             .build();
         this.addRenderableWidget(this.openFolderButton);
 
-        this.refreshButton = Button.builder(Component.literal("🔄"), b -> refreshPacks())
+        this.refreshButton = Button.builder(Component.literal("🗘"), b -> refreshPacks())
             .bounds(headerStartX + searchW + 121, 20, 24, 20)
             .tooltip(Tooltip.create(Component.literal("Re-scan intros directory")))
             .build();

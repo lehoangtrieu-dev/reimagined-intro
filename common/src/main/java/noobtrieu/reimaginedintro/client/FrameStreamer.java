@@ -53,13 +53,8 @@ public class FrameStreamer {
         if (initialized) return;
 
         IntroPack pack = IntroPackManager.getActivePack();
-        if (pack == null || (!pack.hasIntro() && !pack.hasLoop())) {
-            initialized = true;
-            return;
-        }
-
-        boolean startWithLoop = !pack.hasIntro() && pack.hasLoop();
-        NativeImage firstFrame = loadFrame(startWithLoop, 1);
+        boolean startWithLoop = pack != null && !pack.hasIntro() && pack.hasLoop();
+        NativeImage firstFrame = pack != null ? loadFrame(startWithLoop, 1) : null;
         int width = firstFrame != null ? firstFrame.getWidth() : 1920;
         int height = firstFrame != null ? firstFrame.getHeight() : 1080;
 
@@ -72,10 +67,18 @@ public class FrameStreamer {
             predecodedCache.put(cacheKey(startWithLoop, 1), firstFrame);
             uploadFrame(startWithLoop, 1);
             lastUploadedFrame = 1;
+        } else {
+            // Guarantee textureView is initialized on the GPU with black 1x1 fallback to prevent crashes
+            NativeImage blank = new NativeImage(1, 1, false);
+            blank.setPixel(0, 0, 0xFF000000);
+            dynamicTexture.setPixels(blank);
+            dynamicTexture.upload();
         }
 
-        // Start prefetching upcoming frames
-        prefetchUpcoming(startWithLoop, 2, Math.min(5, startWithLoop ? pack.getLoopFrameCount() : pack.getIntroFrameCount()));
+        if (pack != null && (pack.hasIntro() || pack.hasLoop())) {
+            // Start prefetching upcoming frames
+            prefetchUpcoming(startWithLoop, 2, Math.min(5, startWithLoop ? pack.getLoopFrameCount() : pack.getIntroFrameCount()));
+        }
     }
 
     public static void loadLastIntroFrame() {

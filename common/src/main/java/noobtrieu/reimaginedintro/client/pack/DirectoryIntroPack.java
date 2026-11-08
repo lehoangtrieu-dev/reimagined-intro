@@ -27,12 +27,15 @@ public class DirectoryIntroPack implements IntroPack {
     }
 
     private void initialize() throws IOException {
-        Path manifestPath = rootDir.resolve("intro.json");
+        Path manifestPath = rootDir.resolve("intro_pack.json");
+        if (!Files.exists(manifestPath)) {
+            manifestPath = rootDir.resolve("intro.json");
+        }
         if (Files.exists(manifestPath)) {
             try (var reader = Files.newBufferedReader(manifestPath)) {
                 this.manifest = IntroPackManifest.parse(reader);
             } catch (Exception e) {
-                ReimaginedIntro.LOGGER.error("Failed to parse intro.json in " + rootDir.getFileName(), e);
+                ReimaginedIntro.LOGGER.error("Failed to parse manifest in " + rootDir.getFileName(), e);
             }
         }
 

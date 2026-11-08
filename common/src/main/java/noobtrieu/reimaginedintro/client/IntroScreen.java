@@ -7,6 +7,8 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
 import noobtrieu.reimaginedintro.client.config.ModConfig;
+import noobtrieu.reimaginedintro.client.pack.IntroPack;
+import noobtrieu.reimaginedintro.client.pack.IntroPackManager;
 
 public class IntroScreen extends Screen {
     private final Screen returnScreen;
@@ -48,6 +50,11 @@ public class IntroScreen extends Screen {
 
         // Fill background with black
         guiGraphics.fill(0, 0, this.width, this.height, 0xFF000000);
+
+        IntroPack pack = IntroPackManager.getActivePack();
+        if (pack == null || !pack.hasIntro() || FrameStreamer.getIntroFrameCount() <= 0) {
+            return;
+        }
 
         // Scale 16:9 animation to FILL (cover) the entire screen with zero black bars
         float screenAspect = (float) this.width / (float) this.height;

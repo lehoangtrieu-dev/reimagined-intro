@@ -152,6 +152,41 @@ public class ZipIntroPackTest {
         }
     }
 
+    @Test
+    public void testWindowsBackslashPathsAndIntroPackJson(@TempDir Path tempDir) throws IOException {
+        File zipFile = tempDir.resolve("windows_pack.zip").toFile();
+
+        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipFile))) {
+            addEntry(zos, "intro_pack.json", """
+                {
+                  "format_version": 1,
+                  "id": "windows_pack",
+                  "name": "Windows Backslash Pack",
+                  "official": true,
+                  "fps": 25
+                }
+                """);
+            addEntry(zos, "intro\\frame_0001.jpg", "f1");
+            addEntry(zos, "intro\\frame_0002.jpg", "f2");
+            addEntry(zos, "loop\\frame_0001.jpg", "l1");
+            addEntry(zos, "panorama\\panorama_overlay.png", "overlay");
+            addEntry(zos, "audio.ogg", "audio");
+        }
+
+        try (ZipIntroPack pack = new ZipIntroPack(zipFile)) {
+            assertEquals("windows_pack", pack.getId());
+            assertEquals("Windows Backslash Pack", pack.getName());
+            assertTrue(pack.isOfficial());
+            assertEquals(25, pack.getFps());
+            assertTrue(pack.hasIntro());
+            assertEquals(2, pack.getIntroFrameCount());
+            assertTrue(pack.hasLoop());
+            assertEquals(1, pack.getLoopFrameCount());
+            assertTrue(pack.hasPanoramaOverlay());
+            assertTrue(pack.hasAudio());
+        }
+    }
+
     private void addEntry(ZipOutputStream zos, String name, String content) throws IOException {
         ZipEntry entry = new ZipEntry(name);
         zos.putNextEntry(entry);

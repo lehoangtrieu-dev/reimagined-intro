@@ -38,18 +38,19 @@ public class ZipIntroPack implements IntroPack {
     private void initialize() throws IOException {
         String basePrefix = "";
 
-        // Find intro.json to determine basePrefix if wrapped inside a subfolder
+        // Find intro_pack.json or intro.json to determine basePrefix if wrapped inside a subfolder
         Enumeration<? extends ZipEntry> entries = zipFile.entries();
         while (entries.hasMoreElements()) {
             ZipEntry entry = entries.nextElement();
-            String name = entry.getName();
-            if (name.endsWith("intro.json")) {
-                basePrefix = name.substring(0, name.length() - "intro.json".length());
+            String norm = entry.getName().replace('\\', '/');
+            if (norm.endsWith("intro_pack.json") || norm.endsWith("intro.json")) {
+                int suffixLen = norm.endsWith("intro_pack.json") ? "intro_pack.json".length() : "intro.json".length();
+                basePrefix = norm.substring(0, norm.length() - suffixLen);
                 try (InputStream is = zipFile.getInputStream(entry);
                      InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
                     this.manifest = IntroPackManifest.parse(reader);
                 } catch (Exception e) {
-                    ReimaginedIntro.LOGGER.error("Failed to parse intro.json in " + zipFileOnDisk.getName(), e);
+                    ReimaginedIntro.LOGGER.error("Failed to parse manifest in " + zipFileOnDisk.getName(), e);
                 }
                 break;
             }
@@ -71,8 +72,9 @@ public class ZipIntroPack implements IntroPack {
             if (entry.isDirectory()) continue;
 
             String name = entry.getName();
-            if (!basePrefix.isEmpty() && !name.startsWith(basePrefix)) continue;
-            String rel = name.substring(basePrefix.length());
+            String norm = name.replace('\\', '/');
+            if (!basePrefix.isEmpty() && !norm.startsWith(basePrefix)) continue;
+            String rel = norm.substring(basePrefix.length());
 
             if (rel.startsWith("intro/") && isImageFile(rel)) {
                 introFrameEntries.add(name);

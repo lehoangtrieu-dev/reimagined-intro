@@ -1,0 +1,42 @@
+{
+  "format_version": 1,
+  "packs": [
+    {
+      "id": "dungeons_2",
+      "name": "Minecraft Dungeons II",
+      "author": "NoobTrieu",
+      "version": "1.0.0",
+      "description": "Experience the official dark Mojang animation from Minecraft Dungeons II.",
+      "fps": 25,
+      "official": true,
+      "has_intro": true,
+      "has_loop": true,
+      "has_audio": true,
+      "has_panorama": false,
+      "has_panorama_overlay": true,
+      "thumbnail_url": "https://raw.githubusercontent.com/lehoangtrieu-dev/reimagined-intro/v4-dev/packs/thumbnails/dungeons_2.png",
+      "download_url": "https://github.com/lehoangtrieu-dev/reimagined-intro/releases/download/packs-v1/Minecraft_Dungeons_2.zip",
+      "file_size": 79280933,
+      "sha256": "609f8923828be294206ae475cc09cdf4bbfb6433351bb569c2e0ad85bb3dd117"
+    },
+    {
+      "id": "panorama_animation",
+      "name": "Panorama Animation",
+      "author": "NoobTrieu",
+      "version": "1.0.0",
+      "description": "Experience the classic default Minecraft panorama with smooth cinematic intro.",
+      "fps": 25,
+      "official": true,
+      "has_intro": true,
+      "has_loop": false,
+      "has_audio": true,
+      "has_panorama": false,
+      "has_panorama_overlay": false,
+      "thumbnail_url": "https://raw.githubusercontent.com/lehoangtrieu-dev/reimagined-intro/v4-dev/packs/thumbnails/panorama_animation.png",
+      "download_url": "https://github.com/lehoangtrieu-dev/reimagined-intro/releases/download/packs-v1/Panorama_Animation.zip",
+      "file_size": 17091947,
+      "sha256": "ceb5aac76c5461d36859ca317ae4335c6e6d0f642dd88b076e8932dbf4d3ed3c"
+    }
+  ]
+}
+

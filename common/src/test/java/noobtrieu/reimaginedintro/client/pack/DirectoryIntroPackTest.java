@@ -47,6 +47,7 @@ public class DirectoryIntroPackTest {
             assertEquals("folder_pack", pack.getId());
             assertEquals("Folder Pack", pack.getName());
             assertEquals(24, pack.getFps());
+            assertTrue(pack.getFileSizeBytes() > 0L);
             assertTrue(pack.hasIntro());
             assertEquals(2, pack.getIntroFrameCount());
             assertFalse(pack.hasLoop());

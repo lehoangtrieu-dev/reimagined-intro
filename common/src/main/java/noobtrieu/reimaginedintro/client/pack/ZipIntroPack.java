@@ -39,6 +39,11 @@ public class ZipIntroPack implements IntroPack {
         return zipFileOnDisk;
     }
 
+    @Override
+    public long getFileSizeBytes() {
+        return zipFileOnDisk != null ? zipFileOnDisk.length() : 0L;
+    }
+
     private void initialize() throws IOException {
         String basePrefix = "";
 

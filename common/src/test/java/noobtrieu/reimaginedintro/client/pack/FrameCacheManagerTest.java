@@ -69,6 +69,8 @@ class FrameCacheManagerTest {
         assertEquals(VideoResolution.P720, VideoResolution.P720.clampToSourceHeight(1080));
 
         IntroPack emptyPack = createStubPack("empty_pack", "1.0.0", 0, 0, new byte[0]);
+        assertNull(FrameCacheManager.formatResolutionLabel(null));
+        assertNull(FrameCacheManager.formatResolutionLabel(emptyPack));
         assertEquals(List.of(VideoResolution.ORIGINAL), FrameCacheManager.getAvailableResolutions(emptyPack));
         assertEquals(VideoResolution.ORIGINAL, FrameCacheManager.clampResolutionForPack(emptyPack, VideoResolution.P720));
     }
@@ -153,6 +155,7 @@ class FrameCacheManagerTest {
         byte[] sdJpeg = createTestJpeg(640, 360);
 
         IntroPack hdPack = createStubPack("hd_test_pack", "1.0.0", 2, 1, hdJpeg);
+        assertEquals("1080p", FrameCacheManager.formatResolutionLabel(hdPack));
         assertEquals(
             List.of(VideoResolution.ORIGINAL, VideoResolution.P720, VideoResolution.P480),
             FrameCacheManager.getAvailableResolutions(hdPack)
@@ -162,6 +165,7 @@ class FrameCacheManagerTest {
 
         byte[] p720Jpeg = createTestJpeg(1280, 720);
         IntroPack p720Pack = createStubPack("p720_test_pack", "1.0.0", 1, 0, p720Jpeg);
+        assertEquals("720p", FrameCacheManager.formatResolutionLabel(p720Pack));
         assertEquals(
             List.of(VideoResolution.ORIGINAL, VideoResolution.P480),
             FrameCacheManager.getAvailableResolutions(p720Pack)

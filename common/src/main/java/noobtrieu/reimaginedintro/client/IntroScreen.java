@@ -3,6 +3,7 @@ package noobtrieu.reimaginedintro.client;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.LoadingOverlay;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
@@ -12,25 +13,47 @@ import noobtrieu.reimaginedintro.client.pack.IntroPackManager;
 
 public class IntroScreen extends Screen {
     private final Screen returnScreen;
+    private final boolean fadeFromBlack;
 
     public IntroScreen() {
-        this(null);
+        this(null, true);
     }
 
     public IntroScreen(Screen returnScreen) {
+        this(returnScreen, true);
+    }
+
+    private IntroScreen(Screen returnScreen, boolean fadeFromBlack) {
         super(Component.literal("Reimagined Intro"));
         this.returnScreen = returnScreen;
+        this.fadeFromBlack = fadeFromBlack;
+    }
+
+    public static IntroScreen fromSplash() {
+        return new IntroScreen(null, false);
+    }
+
+    private static int getSplashBackgroundColor() {
+        return Boolean.TRUE.equals(Minecraft.getInstance().options.darkMojangStudiosBackground().get())
+            ? 0xFF000000
+            : 0xFFEF323D;
     }
 
     @Override
     protected void init() {
         super.init();
-        // Clear any remaining red loading overlay so it doesn't flash over the intro
-        Minecraft.getInstance().gui.setOverlay(null);
+        Minecraft mc = Minecraft.getInstance();
         if (returnScreen != null) {
             IntroManager.setReturnScreen(returnScreen);
         }
-        IntroManager.startIntro();
+        if (!fadeFromBlack && mc.gui.overlay() instanceof LoadingOverlay) {
+            // Keep LoadingOverlay alive briefly so its centered progress bar can fade out cleanly
+            // before intro playback/audio starts; pre-warm frame 1 now so handoff is instantaneous.
+            FrameStreamer.init();
+        } else {
+            mc.gui.setOverlay(null);
+            IntroManager.startIntro();
+        }
     }
 
     @Override
@@ -48,8 +71,8 @@ public class IntroScreen extends Screen {
         // Update active texture
         FrameStreamer.update(renderElapsed);
 
-        // Fill background with black
-        guiGraphics.fill(0, 0, this.width, this.height, 0xFF000000);
+        // Fill background (match Mojang splash background when opening from splash so there is no black flash)
+        guiGraphics.fill(0, 0, this.width, this.height, fadeFromBlack ? 0xFF000000 : getSplashBackgroundColor());
 
         IntroPack pack = IntroPackManager.getActivePack();
         if (pack == null || !pack.hasIntro() || FrameStreamer.getIntroFrameCount() <= 0) {
@@ -88,8 +111,8 @@ public class IntroScreen extends Screen {
             1.0f
         );
 
-        // Smooth fade-in from black during first 400ms
-        if (elapsed < 400) {
+        // Smooth fade-in from black during first 400ms (menus / F6 replay / Preview only)
+        if (fadeFromBlack && elapsed < 400) {
             float fadeProgress = 1.0f - ((float) elapsed / 400.0f);
             int alpha = (int) (Math.clamp(fadeProgress, 0.0f, 1.0f) * 255.0f);
             if (alpha > 0) {

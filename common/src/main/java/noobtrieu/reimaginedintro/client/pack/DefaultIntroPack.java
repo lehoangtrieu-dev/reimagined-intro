@@ -14,7 +14,7 @@ public class DefaultIntroPack implements IntroPack {
         this.manifest.setName("Reimagined Intro");
         this.manifest.setAuthor("NoobTrieu");
         this.manifest.setVersion("1.0.0");
-        this.manifest.setDescription("The default look and feel of Reimagined Intro.");
+        this.manifest.setDescription("The default look and feel of the Reimagined Intro you know and love.");
         this.manifest.setOfficial(true);
         this.manifest.setFps(25);
     }

@@ -15,6 +15,7 @@ import java.util.zip.ZipOutputStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -33,6 +34,7 @@ class OnlinePackRepositoryTest {
                       "version": "1.2.0",
                       "description": "Animated dungeon reveal",
                       "fps": 30,
+                      "resolution": "1440",
                       "official": true,
                       "has_intro": true,
                       "has_loop": true,
@@ -65,6 +67,7 @@ class OnlinePackRepositoryTest {
         assertEquals("NoobTrieu", pack.getAuthor());
         assertEquals("1.2.0", pack.getVersion());
         assertEquals(30, pack.getFps());
+        assertEquals("1440p", pack.getResolution());
         assertTrue(pack.isOfficial());
         assertTrue(pack.hasIntro());
         assertTrue(pack.hasLoop());
@@ -89,6 +92,12 @@ class OnlinePackRepositoryTest {
         assertEquals(1, packs.size());
         assertEquals("bare_pack", packs.get(0).getId());
         assertEquals("Bare Pack", packs.get(0).getName());
+        assertNull(packs.get(0).getResolution());
+
+        packs.get(0).setResolution("1080p");
+        assertEquals("1080p", packs.get(0).getResolution());
+        packs.get(0).setResolution("  ");
+        assertNull(packs.get(0).getResolution());
     }
 
     @Test

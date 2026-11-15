@@ -143,8 +143,8 @@ public class ModConfigScreen extends Screen {
             CycleButton.booleanBuilder(Component.literal("§aShown"), Component.literal("§cHidden"), ModConfig.get().showOptionsButton)
                 .withTooltip(val -> Tooltip.create(Component.literal(
                     ModKeybinds.OPEN_OPTIONS.isUnbound()
-                        ? "Show or hide the \"Reimagined Intro...\" button in Minecraft's Options menu.\nTip: You can bind a key in Controls to open this from the Title Screen."
-                        : "Show or hide the \"Reimagined Intro...\" button in Minecraft's Options menu.\nTip: You can still press "
+                        ? "Show or hide the \"Reimagined Intro...\" button in Minecraft's Options menu.\n§8§lTip:§r§8 You can bind a key in Controls to open this from the Title Screen."
+                        : "Show or hide the \"Reimagined Intro...\" button in Minecraft's Options menu.\n§8§lTip:§r§8 You can still press "
                             + ModKeybinds.getOpenOptionsKeyDisplay().getString()
                             + " on the Title Screen."
                 )))
@@ -217,7 +217,7 @@ public class ModConfigScreen extends Screen {
                 .displayOnlyValue()
                 .withTooltip(val -> Tooltip.create(Component.literal(
                     hasResOptions
-                        ? "Lower video resolution to reduce lag"
+                        ? "Lower resolution to reduce lag"
                         : "This pack is already 480p or lower"
                 )))
                 .create(leftX, cacheRowY, resWidth, 20, Component.literal("Resolution"), (btn, val) -> {

@@ -40,7 +40,7 @@ public abstract class TitleScreenMixin extends Screen {
         if (!IntroManager.hasPlayed()) {
             IntroManager.setHasPlayed(true);
             if (ModConfig.get().enableIntro && IntroPackManager.getActivePack().hasIntro()) {
-                Minecraft.getInstance().gui.setScreen(new IntroScreen());
+                Minecraft.getInstance().gui.setScreen(IntroScreen.fromSplash());
                 ci.cancel();
             }
         }

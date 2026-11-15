@@ -165,6 +165,18 @@ public final class FrameCacheManager {
     }
 
     /**
+     * Returns a compact resolution label such as {@code "1440p"} for the pack's first video frame,
+     * or {@code null} if the pack has no video frames or dimensions cannot be probed.
+     */
+    public static String formatResolutionLabel(IntroPack pack) {
+        int[] dims = getPackSourceDimensions(pack);
+        if (dims == null || dims.length < 2 || dims[1] <= 0) {
+            return null;
+        }
+        return dims[1] + "p";
+    }
+
+    /**
      * Returns {@link VideoResolution#ORIGINAL} plus presets strictly lower than the pack's source height.
      */
     public static List<VideoResolution> getAvailableResolutions(IntroPack pack) {

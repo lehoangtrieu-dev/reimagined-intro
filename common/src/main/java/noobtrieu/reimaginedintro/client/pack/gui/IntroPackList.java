@@ -13,6 +13,7 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
+import noobtrieu.reimaginedintro.client.pack.FrameCacheManager;
 import noobtrieu.reimaginedintro.client.pack.IntroPack;
 import noobtrieu.reimaginedintro.client.pack.IntroPackManager;
 import noobtrieu.reimaginedintro.client.pack.online.OnlinePackRepository;
@@ -76,6 +77,22 @@ public class IntroPackList extends ContainerObjectSelectionList<IntroPackList.Gr
         int dotsW = font.width("...");
         if (maxWidth <= dotsW) return "...";
         return font.plainSubstrByWidth(text, maxWidth - dotsW) + "...";
+    }
+
+    private static String truncateStyledWithEllipsis(Font font, String text, int maxWidth, ChatFormatting... formatting) {
+        if (text == null || text.isEmpty()) return "";
+        if (font.width(Component.literal(text).withStyle(formatting)) <= maxWidth) {
+            return text;
+        }
+        int dotsW = font.width(Component.literal("...").withStyle(formatting));
+        if (maxWidth <= dotsW) {
+            return "...";
+        }
+        String candidate = font.plainSubstrByWidth(text, maxWidth - dotsW);
+        while (!candidate.isEmpty() && font.width(Component.literal(candidate + "...").withStyle(formatting)) > maxWidth) {
+            candidate = candidate.substring(0, candidate.length() - 1);
+        }
+        return candidate + "...";
     }
 
     public static class GridRowEntry extends ContainerObjectSelectionList.Entry<GridRowEntry> {
@@ -151,6 +168,9 @@ public class IntroPackList extends ContainerObjectSelectionList<IntroPackList.Gr
     }
 
     public static class PackCard {
+        private static final int OVERLAY_HEIGHT = 53;
+        private static final int BUTTON_OFFSET_Y = 29;
+
         private final IntroPackSelectionScreen screen;
         private final IntroPack localPack;
         private final RemoteIntroPack remotePack;
@@ -226,9 +246,8 @@ public class IntroPackList extends ContainerObjectSelectionList<IntroPackList.Gr
         }
 
         private void layoutButtons() {
-            int overlayHeight = 66;
-            int overlayY = y + height - overlayHeight;
-            int btnY = overlayY + 42;
+            int overlayY = y + height - OVERLAY_HEIGHT;
+            int btnY = overlayY + BUTTON_OFFSET_Y;
             int contentX = x + 6;
             int availBtnW = width - 12;
             int btnGap = 4;
@@ -445,10 +464,10 @@ public class IntroPackList extends ContainerObjectSelectionList<IntroPackList.Gr
                 if (remotePack != null && (remotePack.getThumbnailUrl() == null || remotePack.getThumbnailUrl().isEmpty())) {
                     placeholder = "§7[No Preview]";
                 }
-                guiGraphics.centeredText(font, Component.literal(placeholder), x + width / 2, y + (height - 66) / 2 - 4, 0xFF666666);
+                guiGraphics.centeredText(font, Component.literal(placeholder), x + width / 2, y + (height - OVERLAY_HEIGHT) / 2 - 4, 0xFF666666);
             }
 
-            // 2. Top-Right Floating Badges
+            // 2. Top-Right Official Badge (only shown on official packs to keep thumbnails uncluttered)
             List<Badge> badges = buildBadges();
             int badgeY = y + 5;
             int totalBadgesW = 0;
@@ -478,20 +497,11 @@ public class IntroPackList extends ContainerObjectSelectionList<IntroPackList.Gr
                 guiGraphics.outline(curBadgeX, badgeY, tagW, 11, badge.borderColor);
                 guiGraphics.text(font, textComp, curBadgeX + 5, badgeY + 1, badge.textColor);
 
-                if (mouseX >= curBadgeX && mouseX < curBadgeX + tagW && mouseY >= badgeY && mouseY < badgeY + 11) {
-                    List<Component> badgeTooltip = List.of(
-                        Component.literal(badge.tooltipTitle),
-                        Component.literal(badge.tooltipDesc)
-                    );
-                    guiGraphics.setComponentTooltipForNextFrame(font, badgeTooltip, mouseX, mouseY);
-                }
-
                 curBadgeX += tagW + 3;
             }
 
             // 3. Dark Overlay Docked at Bottom
-            int overlayHeight = 66;
-            int overlayY = y + height - overlayHeight;
+            int overlayY = y + height - OVERLAY_HEIGHT;
             guiGraphics.fill(x, overlayY, x + width, y + height, 0xB8101010);
             guiGraphics.fill(x, overlayY, x + width, overlayY + 1, 0x30FFFFFF);
 
@@ -510,29 +520,21 @@ public class IntroPackList extends ContainerObjectSelectionList<IntroPackList.Gr
             int contentX = x + 6;
             int maxTextW = width - 12;
 
-            // Line 1: Title
+            // Line 1: Name only
             int line1Y = overlayY + 5;
-            String titleStr = truncateWithEllipsis(font, packName, maxTextW);
-            guiGraphics.text(font, Component.literal(titleStr).withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD), contentX, line1Y + 1, 0xFFFFFFFF);
+            String safeName = packName != null ? packName : "";
+            String shownName = truncateStyledWithEllipsis(font, safeName, maxTextW, ChatFormatting.WHITE, ChatFormatting.BOLD);
+            guiGraphics.text(font, Component.literal(shownName).withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD), contentX, line1Y, 0xFFFFFFFF);
 
-            // Line 2: Author, FPS, and optional remote size
-            int line2Y = line1Y + 12;
-            String sizeLabel = (remotePack != null && remotePack.getFileSizeBytes() > 0)
-                ? (" • " + RemoteIntroPack.formatFileSize(remotePack.getFileSizeBytes()))
-                : "";
-            String meta = "by " + packAuthor + " • " + packFps + " FPS" + sizeLabel;
-            String trimmedMeta = truncateWithEllipsis(font, meta, maxTextW);
-            guiGraphics.text(font, Component.literal(trimmedMeta).withStyle(ChatFormatting.GRAY), contentX, line2Y, 0xFFAAAAAA);
-
-            // Line 3: 1-Line Description Summary
-            int line3Y = line2Y + 11;
-            if (packDesc != null && !packDesc.trim().isEmpty()) {
-                String trimmedDesc = truncateWithEllipsis(font, packDesc.trim(), maxTextW);
-                guiGraphics.text(font, Component.literal(trimmedDesc).withStyle(ChatFormatting.DARK_GRAY), contentX, line3Y, 0xFF888888);
-            }
+            // Line 2: Author only
+            int line2Y = overlayY + 16;
+            String safeAuthor = (packAuthor != null && !packAuthor.trim().isEmpty()) ? packAuthor.trim() : "Unknown";
+            String authorLine = "by " + safeAuthor;
+            String trimmedAuthor = truncateWithEllipsis(font, authorLine, maxTextW);
+            guiGraphics.text(font, Component.literal(trimmedAuthor).withStyle(ChatFormatting.GRAY), contentX, line2Y, 0xFFAAAAAA);
 
             // 4. Buttons Render
-            int btnY = overlayY + 42;
+            int btnY = overlayY + BUTTON_OFFSET_Y;
             primaryButton.extractRenderState(guiGraphics, mouseX, mouseY, partialTick);
             if (secondaryButton.visible) {
                 secondaryButton.extractRenderState(guiGraphics, mouseX, mouseY, partialTick);
@@ -553,68 +555,84 @@ public class IntroPackList extends ContainerObjectSelectionList<IntroPackList.Gr
                 guiGraphics.outline(x, y, width, height, 0xFF2A2A2A);
             }
 
-            // 6. Contextual Tooltips: Title & Description Hover
-            boolean isTitleHovered = mouseX >= contentX && mouseX < contentX + maxTextW
-                && mouseY >= line1Y && mouseY < line2Y;
-            if (isTitleHovered && font.width(packName) > maxTextW) {
-                guiGraphics.setComponentTooltipForNextFrame(font, List.of(Component.literal(packName)), mouseX, mouseY);
+            // 6. Card Details Tooltip (shown when hovering card body above buttons)
+            if (isCardHovered && mouseY < btnY) {
+                List<FormattedCharSequence> tooltipLines = buildCardHoverTooltip(
+                    font, installed, packVersion, packFps, packDesc
+                );
+                if (!tooltipLines.isEmpty()) {
+                    guiGraphics.setTooltipForNextFrame(font, tooltipLines, mouseX, mouseY);
+                }
+            }
+        }
+
+        private List<FormattedCharSequence> buildCardHoverTooltip(
+            Font font,
+            IntroPack installed,
+            String packVersion,
+            int packFps,
+            String packDesc
+        ) {
+            List<FormattedCharSequence> lines = new ArrayList<>();
+
+            // Specs Line: v1.0.0 • 1440p@25 • 75.6 MB
+            List<String> specParts = new ArrayList<>();
+            if (packVersion != null && !packVersion.trim().isEmpty()) {
+                specParts.add("v" + packVersion.trim());
+            }
+            String resLabel = remotePack != null ? remotePack.getResolution() : FrameCacheManager.formatResolutionLabel(localPack);
+            if (remotePack != null && resLabel == null && installed != null) {
+                resLabel = FrameCacheManager.formatResolutionLabel(installed);
+            }
+            specParts.add((resLabel != null && !resLabel.isEmpty()) ? (resLabel + "@" + packFps) : (packFps + " FPS"));
+            long fileSizeBytes = remotePack != null
+                ? (remotePack.getFileSizeBytes() > 0 ? remotePack.getFileSizeBytes() : (installed != null ? installed.getFileSizeBytes() : 0L))
+                : localPack.getFileSizeBytes();
+            if (fileSizeBytes > 0) {
+                specParts.add(RemoteIntroPack.formatFileSize(fileSizeBytes));
+            }
+            lines.add(Component.literal(String.join(" • ", specParts))
+                .withStyle(ChatFormatting.GRAY)
+                .getVisualOrderText());
+
+            // Feature Summary
+            boolean hasIntro = remotePack != null ? remotePack.hasIntro() : localPack.hasIntro();
+            boolean hasLoop = remotePack != null ? remotePack.hasLoop() : localPack.hasLoop();
+            boolean hasAudio = remotePack != null ? remotePack.hasAudio() : localPack.hasAudio();
+
+            List<String> featureParts = new ArrayList<>();
+            if (hasIntro) featureParts.add("Intro");
+            if (hasLoop) featureParts.add("Title Screen");
+            if (hasAudio) featureParts.add("Audio");
+            if (!featureParts.isEmpty()) {
+                lines.add(Component.literal(String.join(" • ", featureParts))
+                    .withStyle(ChatFormatting.DARK_GRAY)
+                    .getVisualOrderText());
             }
 
-            boolean isDescHovered = mouseX >= contentX && mouseX < contentX + maxTextW
-                && mouseY >= line2Y && mouseY < btnY;
-            if (isDescHovered) {
-                List<FormattedCharSequence> descLines = new ArrayList<>();
-                descLines.add(Component.literal("§f§l" + packName + " §7(v" + packVersion + ")").getVisualOrderText());
-                descLines.add(Component.literal("§7" + meta).getVisualOrderText());
-
-                if (packDesc != null && !packDesc.trim().isEmpty()) {
-                    descLines.add(Component.empty().getVisualOrderText());
-                    int maxWrapWidth = 220;
-                    for (String paragraph : packDesc.trim().split("\r?\n")) {
-                        if (paragraph.trim().isEmpty()) {
-                            descLines.add(Component.empty().getVisualOrderText());
-                        } else {
-                            descLines.addAll(font.split(Component.literal("§f" + paragraph), maxWrapWidth));
-                        }
+            // Wrapped Description
+            String rawDesc = packDesc != null ? packDesc.trim() : "";
+            if (!rawDesc.isEmpty()) {
+                lines.add(Component.empty().getVisualOrderText());
+                int maxWrapWidth = 220;
+                for (String paragraph : rawDesc.split("\\r?\\n")) {
+                    if (paragraph.trim().isEmpty()) {
+                        lines.add(Component.empty().getVisualOrderText());
+                    } else {
+                        lines.addAll(font.split(Component.literal(paragraph).withStyle(ChatFormatting.WHITE), maxWrapWidth));
                     }
                 }
-
-                guiGraphics.setTooltipForNextFrame(font, descLines, mouseX, mouseY);
             }
+
+            return lines;
         }
 
         private List<Badge> buildBadges() {
             boolean isOfficial = remotePack != null ? remotePack.isOfficial() : localPack.isOfficial();
-            boolean hasIntro = remotePack != null ? remotePack.hasIntro() : localPack.hasIntro();
-            boolean hasLoop = remotePack != null ? remotePack.hasLoop() : localPack.hasLoop();
-            boolean hasAudio = remotePack != null ? remotePack.hasAudio() : localPack.hasAudio();
-            boolean hasPanorama = remotePack != null ? remotePack.hasPanorama() : localPack.hasPanorama();
-            boolean hasOverlay = remotePack != null ? remotePack.hasPanoramaOverlay() : localPack.hasPanoramaOverlay();
 
             List<Badge> badges = new ArrayList<>();
             if (isOfficial) {
-                badges.add(new Badge("OFFICIAL", 0xA01D4ED8, 0xC03B82F6, 0xFFFFFFFF, true,
-                    "§9Official Pack", "§7Curated and maintained by the mod author."));
-            }
-            if (hasIntro) {
-                badges.add(new Badge("Intro", 0x88000000, 0x40FFFFFF, 0xFF4ADE80, false,
-                    "§aStartup Intro Sequence", "§7Plays a custom fullscreen intro video on game launch."));
-            }
-            if (hasLoop) {
-                badges.add(new Badge("Loop", 0x88000000, 0x40FFFFFF, 0xFFFBBF24, false,
-                    "§6Title Screen Loop", "§7Replaces the title screen with an animated video loop."));
-            }
-            if (hasAudio) {
-                badges.add(new Badge("Audio", 0x88000000, 0x40FFFFFF, 0xFF38BDF8, false,
-                    "§bCustom Soundtrack", "§7Includes custom audio and intro music."));
-            }
-            if (hasPanorama) {
-                badges.add(new Badge("Pano", 0x88000000, 0x40FFFFFF, 0xFFE879F9, false,
-                    "§dCustom Panorama", "§7Includes custom title screen panorama background."));
-            }
-            if (hasOverlay) {
-                badges.add(new Badge("Over", 0x88000000, 0x40FFFFFF, 0xFFFACC15, false,
-                    "§ePanorama Overlay", "§7Includes a custom title screen vignette/overlay."));
+                badges.add(new Badge("OFFICIAL", 0xA01D4ED8, 0xC03B82F6, 0xFFFFFFFF, true));
             }
             return badges;
         }
@@ -625,17 +643,13 @@ public class IntroPackList extends ContainerObjectSelectionList<IntroPackList.Gr
             final int borderColor;
             final int textColor;
             final boolean bold;
-            final String tooltipTitle;
-            final String tooltipDesc;
 
-            Badge(String text, int bgColor, int borderColor, int textColor, boolean bold, String tooltipTitle, String tooltipDesc) {
+            Badge(String text, int bgColor, int borderColor, int textColor, boolean bold) {
                 this.text = text;
                 this.bgColor = bgColor;
                 this.borderColor = borderColor;
                 this.textColor = textColor;
                 this.bold = bold;
-                this.tooltipTitle = tooltipTitle;
-                this.tooltipDesc = tooltipDesc;
             }
         }
     }

@@ -30,6 +30,10 @@ public interface IntroPack extends Closeable {
         return getIntroFrameCount() * getFrameDurationMs();
     }
 
+    default long getFileSizeBytes() {
+        return 0L;
+    }
+
     boolean hasIntro();
 
     boolean hasLoop();

@@ -20,6 +20,7 @@ public class DirectoryIntroPack implements IntroPack {
     private Path thumbnailPath;
     private Path panoramaOverlayPath;
     private final Path[] panoramaFaces = new Path[6];
+    private long fileSizeBytes;
 
     public DirectoryIntroPack(File dir) throws IOException {
         this.rootDir = dir.toPath();
@@ -30,7 +31,13 @@ public class DirectoryIntroPack implements IntroPack {
         return rootDir;
     }
 
+    @Override
+    public long getFileSizeBytes() {
+        return fileSizeBytes;
+    }
+
     private void initialize() throws IOException {
+        this.fileSizeBytes = computeDirectorySize(rootDir);
         Path manifestPath = rootDir.resolve("intro_pack.json");
         if (!Files.exists(manifestPath)) {
             manifestPath = rootDir.resolve("intro.json");
@@ -206,6 +213,25 @@ public class DirectoryIntroPack implements IntroPack {
         } catch (IOException e) {
             ReimaginedIntro.LOGGER.error("Failed to open file: " + p, e);
             return null;
+        }
+    }
+
+    private static long computeDirectorySize(Path root) {
+        if (root == null || !Files.isDirectory(root)) {
+            return 0L;
+        }
+        try (Stream<Path> walk = Files.walk(root)) {
+            return walk.filter(Files::isRegularFile)
+                .mapToLong(p -> {
+                    try {
+                        return Files.size(p);
+                    } catch (IOException e) {
+                        return 0L;
+                    }
+                })
+                .sum();
+        } catch (IOException e) {
+            return 0L;
         }
     }
 }

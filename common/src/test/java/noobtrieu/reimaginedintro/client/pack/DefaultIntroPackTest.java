@@ -14,6 +14,7 @@ public class DefaultIntroPackTest {
         assertTrue(pack.isOfficial());
         assertEquals(25, pack.getFps());
         assertEquals(40L, pack.getFrameDurationMs());
+        assertEquals(0L, pack.getFileSizeBytes());
 
         assertTrue(pack.hasIntro());
         assertEquals(161, pack.getIntroFrameCount());

@@ -8,6 +8,10 @@
 
 [![Showcase Video](https://img.youtube.com/vi/oKInHAuZvh8/maxresdefault.jpg)](https://www.youtube.com/watch?v=oKInHAuZvh8)
 
+![Marketplace](https://cdn.modrinth.com/data/cached_images/1cfc4a589590ed724f33a29a49d429c9cca8bd92_0.webp)
+
+![Options](https://cdn.modrinth.com/data/cached_images/dced7adb41ec9d9658db19f1ea4c4d657bc2a4bc_0.webp)
+
 ---
 
 ## ![What's New](https://cdn.modrinth.com/data/cached_images/40840eca740c834a4ee28645dccca860a66e5b8c.png)

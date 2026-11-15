@@ -37,6 +37,9 @@ public class RemoteIntroPack {
     @SerializedName("fps")
     private int fps = 25;
 
+    @SerializedName("resolution")
+    private String resolution;
+
     @SerializedName("official")
     private boolean official = false;
 
@@ -228,6 +231,24 @@ public class RemoteIntroPack {
 
     public void setFps(int fps) {
         this.fps = fps;
+    }
+
+    public String getResolution() {
+        return normalizeResolution(this.resolution);
+    }
+
+    public void setResolution(String resolution) {
+        this.resolution = normalizeResolution(resolution);
+    }
+
+    private static String normalizeResolution(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        if (trimmed.isEmpty()) return null;
+        if (trimmed.chars().allMatch(Character::isDigit)) {
+            return trimmed + "p";
+        }
+        return trimmed;
     }
 
     public boolean isOfficial() {

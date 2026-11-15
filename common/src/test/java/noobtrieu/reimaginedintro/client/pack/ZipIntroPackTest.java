@@ -59,6 +59,7 @@ public class ZipIntroPackTest {
             assertEquals("full_test_pack", pack.getId());
             assertEquals("Full Test Pack", pack.getName());
             assertEquals(60, pack.getFps());
+            assertEquals(zipFile.length(), pack.getFileSizeBytes());
             assertFalse(pack.isOfficial());
             assertTrue(IntroPackManager.canUninstall(pack));
 

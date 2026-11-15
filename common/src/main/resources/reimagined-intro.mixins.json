@@ -5,6 +5,7 @@
 	"client": [
 		"TitleScreenMixin",
 		"ScreenMixin",
+		"OptionsScreenMixin",
 		"PanoramaMixin",
 		"LoadingOverlayMixin",
 		"CubeMapTextureMixin",

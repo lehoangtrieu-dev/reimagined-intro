@@ -88,6 +88,14 @@ public class IntroPackManager {
         }
 
         ReimaginedIntro.LOGGER.info("Active intro pack set to: " + activePack.getName() + " (" + activePack.getId() + ")");
+        prepareActivePackCacheIfNeeded();
+    }
+
+    private static void prepareActivePackCacheIfNeeded() {
+        noobtrieu.reimaginedintro.client.config.VideoResolution resolution = ModConfig.get().getVideoResolution();
+        if (activePack != null && resolution != noobtrieu.reimaginedintro.client.config.VideoResolution.ORIGINAL) {
+            FrameCacheManager.prepareCacheAsync(activePack, resolution, null);
+        }
     }
 
     public static synchronized IntroPack getActivePack() {
@@ -122,6 +130,7 @@ public class IntroPackManager {
             } catch (Throwable t) {
                 ReimaginedIntro.LOGGER.error("Failed to reload cubemap texture for pack: " + pack.getName(), t);
             }
+            prepareActivePackCacheIfNeeded();
         }
     }
 
@@ -198,6 +207,7 @@ public class IntroPackManager {
             } else {
                 Files.deleteIfExists(normalizedTarget);
             }
+            FrameCacheManager.invalidatePackCache(pack.getId());
             ReimaginedIntro.LOGGER.info("Uninstalled intro pack '{}' ({})", pack.getName(), normalizedTarget.getFileName());
             reloadPacks();
             return true;

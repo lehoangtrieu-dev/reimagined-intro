@@ -308,6 +308,7 @@ public class OnlinePackRepository {
                     try {
                         Path targetFile = defaultTarget;
                         if (replacePackId != null) {
+                            noobtrieu.reimaginedintro.client.pack.FrameCacheManager.invalidatePackCache(replacePackId);
                             IntroPack existingPack = IntroPackManager.getPack(replacePackId);
                             if (existingPack instanceof ZipIntroPack zipPack) {
                                 if (zipPack.getZipFile() != null) {

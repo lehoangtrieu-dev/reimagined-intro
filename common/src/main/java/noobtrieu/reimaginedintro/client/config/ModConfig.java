@@ -17,9 +17,19 @@ public class ModConfig {
     public float introVolume = 1.0f;
     public boolean enableTitleScreenLoop = true;
     public boolean showSkipPrompt = true;
+    public boolean showOptionsButton = true;
     public boolean ignoreLegacyWarning = false;
     public String selectedPack = "mojang_reimagined";
     public String packRegistryUrl = DEFAULT_REGISTRY_URL;
+    public String videoResolution = VideoResolution.ORIGINAL.getId();
+
+    public VideoResolution getVideoResolution() {
+        return VideoResolution.fromId(this.videoResolution);
+    }
+
+    public void setVideoResolution(VideoResolution resolution) {
+        this.videoResolution = (resolution != null ? resolution : VideoResolution.ORIGINAL).getId();
+    }
 
     public String getEffectiveRegistryUrl() {
         return (packRegistryUrl == null || packRegistryUrl.trim().isEmpty())

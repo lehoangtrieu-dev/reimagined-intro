@@ -16,8 +16,8 @@
       "has_panorama_overlay": true,
       "thumbnail_url": "https://raw.githubusercontent.com/lehoangtrieu-dev/reimagined-intro/v4-dev/packs/thumbnails/dungeons_2.png",
       "download_url": "https://github.com/lehoangtrieu-dev/reimagined-intro/releases/download/packs-v1/Minecraft_Dungeons_2.zip",
-      "file_size": 55062542,
-      "sha256": "c95778190e5c1e20648302243da57e2a64a0646a4045f46d22cf58bf8f0baaef"
+      "file_size": 79280933,
+      "sha256": "609f8923828be294206ae475cc09cdf4bbfb6433351bb569c2e0ad85bb3dd117"
     },
     {
       "id": "panorama_animation",
@@ -34,8 +34,8 @@
       "has_panorama_overlay": false,
       "thumbnail_url": "https://raw.githubusercontent.com/lehoangtrieu-dev/reimagined-intro/v4-dev/packs/thumbnails/panorama_animation.png",
       "download_url": "https://github.com/lehoangtrieu-dev/reimagined-intro/releases/download/packs-v1/Panorama_Animation.zip",
-      "file_size": 12177483,
-      "sha256": "047d3f9d81d6aae0c93542d5fd2cbfd72993812e68fba0b7b148599a2ac51f5d"
+      "file_size": 17091947,
+      "sha256": "ceb5aac76c5461d36859ca317ae4335c6e6d0f642dd88b076e8932dbf4d3ed3c"
     }
   ]
 }

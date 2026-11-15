@@ -5,8 +5,12 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.Identifier;
 import noobtrieu.reimaginedintro.ReimaginedIntro;
+import noobtrieu.reimaginedintro.client.config.ModConfig;
+import noobtrieu.reimaginedintro.client.config.VideoResolution;
+import noobtrieu.reimaginedintro.client.pack.FrameCacheManager;
 import noobtrieu.reimaginedintro.client.pack.IntroPack;
 import noobtrieu.reimaginedintro.client.pack.IntroPackManager;
+import noobtrieu.reimaginedintro.client.pack.StbFrameTranscoder;
 
 import java.io.InputStream;
 import java.util.concurrent.ConcurrentHashMap;
@@ -223,9 +227,28 @@ public class FrameStreamer {
         IntroPack pack = IntroPackManager.getActivePack();
         if (pack == null) return null;
 
+        VideoResolution resolution = ModConfig.get().getVideoResolution();
+        if (resolution != VideoResolution.ORIGINAL) {
+            try (InputStream cached = FrameCacheManager.openCachedFrame(pack, resolution, isLoop, frameIndex)) {
+                if (cached != null) {
+                    return NativeImageDecoder.decode(cached);
+                }
+            } catch (Throwable e) {
+                ReimaginedIntro.LOGGER.warn("Failed reading cached {} frame #{} for pack {}, falling back to original",
+                    isLoop ? "loop" : "intro", frameIndex, pack.getId(), e);
+            }
+
+            FrameCacheManager.CacheProgress progress = FrameCacheManager.getProgress(pack, resolution);
+            if (!FrameCacheManager.isCacheReady(pack, resolution)
+                && (progress == null || progress.status == FrameCacheManager.Status.IDLE)) {
+                FrameCacheManager.prepareCacheAsync(pack, resolution, null);
+            }
+        }
+
         try (InputStream stream = isLoop ? pack.openLoopFrame(frameIndex) : pack.openIntroFrame(frameIndex)) {
             if (stream != null) {
-                return NativeImageDecoder.decode(stream);
+                NativeImage decoded = NativeImageDecoder.decode(stream);
+                return StbFrameTranscoder.downscaleNativeImageIfNeeded(decoded, resolution);
             }
         } catch (Throwable e) {
             ReimaginedIntro.LOGGER.error("Failed to decode " + (isLoop ? "loop" : "intro") + " frame #" + frameIndex + " from pack " + pack.getName(), e);

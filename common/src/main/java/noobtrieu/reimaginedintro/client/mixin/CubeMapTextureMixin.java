@@ -2,7 +2,11 @@ package noobtrieu.reimaginedintro.client.mixin;
 
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.renderer.texture.CubeMapTexture;
+import net.minecraft.client.renderer.texture.MipmapStrategy;
+import net.minecraft.client.renderer.texture.ReloadableTexture;
 import net.minecraft.client.renderer.texture.TextureContents;
+import net.minecraft.client.resources.metadata.texture.TextureMetadataSection;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
 import noobtrieu.reimaginedintro.ReimaginedIntro;
 import noobtrieu.reimaginedintro.client.NativeImageDecoder;
@@ -20,6 +24,12 @@ import java.io.InputStream;
 public abstract class CubeMapTextureMixin {
     @Inject(method = "loadContents", at = @At("HEAD"), cancellable = true)
     private void loadCustomCubemap(ResourceManager resourceManager, CallbackInfoReturnable<TextureContents> cir) {
+        Identifier location = ((ReloadableTexture) (Object) this).resourceId();
+        if (!"minecraft".equals(location.getNamespace())
+            || !"textures/gui/title/background/panorama".equals(location.getPath())) {
+            return;
+        }
+
         IntroPack pack = IntroPackManager.getActivePack();
         if (pack != null && pack.hasPanorama()) {
             // Suffix order in Minecraft 26.3 CubeMapTexture:
@@ -37,11 +47,13 @@ public abstract class CubeMapTextureMixin {
             try {
                 for (int i = 0; i < 6; i++) {
                     int faceIndex = faceIndices[i];
-                    InputStream stream = pack.openPanoramaFace(faceIndex);
-                    if (stream == null) {
-                        throw new IOException("Missing panorama face: panorama_" + faceIndex + ".png in pack " + pack.getName());
+                    NativeImage face;
+                    try (InputStream stream = pack.openPanoramaFace(faceIndex)) {
+                        if (stream == null) {
+                            throw new IOException("Missing panorama face: panorama_" + faceIndex + ".png in pack " + pack.getName());
+                        }
+                        face = NativeImageDecoder.decode(stream);
                     }
-                    NativeImage face = NativeImageDecoder.decode(stream);
                     if (face == null) {
                         throw new IOException("Failed to decode panorama face: panorama_" + faceIndex + ".png");
                     }
@@ -59,7 +71,7 @@ public abstract class CubeMapTextureMixin {
                     face.close();
                 }
 
-                cir.setReturnValue(new TextureContents(combined, null));
+                cir.setReturnValue(new TextureContents(combined, new TextureMetadataSection(true, false, MipmapStrategy.MEAN, 0.0F)));
             } catch (Throwable t) {
                 ReimaginedIntro.LOGGER.error("Failed to load custom panorama from pack: " + pack.getName(), t);
                 if (combined != null) {

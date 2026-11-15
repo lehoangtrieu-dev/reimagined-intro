@@ -5,6 +5,8 @@ import noobtrieu.reimaginedintro.ReimaginedIntro;
 import noobtrieu.reimaginedintro.client.FrameStreamer;
 import noobtrieu.reimaginedintro.client.PanoramaOverlayManager;
 import noobtrieu.reimaginedintro.client.config.ModConfig;
+import noobtrieu.reimaginedintro.client.config.VideoFps;
+import noobtrieu.reimaginedintro.client.config.VideoResolution;
 import noobtrieu.reimaginedintro.platform.Services;
 
 import java.io.File;
@@ -92,9 +94,45 @@ public class IntroPackManager {
     }
 
     private static void prepareActivePackCacheIfNeeded() {
-        noobtrieu.reimaginedintro.client.config.VideoResolution resolution = ModConfig.get().getVideoResolution();
-        if (activePack != null && resolution != noobtrieu.reimaginedintro.client.config.VideoResolution.ORIGINAL) {
-            FrameCacheManager.prepareCacheAsync(activePack, resolution, null);
+        if (activePack == null) {
+            return;
+        }
+        boolean configChanged = false;
+        boolean hasFrames = (activePack.hasIntro() && activePack.getIntroFrameCount() > 0)
+            || (activePack.hasLoop() && activePack.getLoopFrameCount() > 0);
+
+        VideoFps fpsSetting = ModConfig.get().getVideoFps();
+        if (fpsSetting != VideoFps.ORIGINAL) {
+            VideoFps clampedFps = hasFrames ? fpsSetting.clampToSourceFps(activePack.getFps()) : VideoFps.ORIGINAL;
+            if (clampedFps != fpsSetting) {
+                ReimaginedIntro.LOGGER.info(
+                    "Pack {} does not exceed {}; resetting video FPS to Original",
+                    activePack.getId(), fpsSetting.getLabel()
+                );
+                ModConfig.get().setVideoFps(clampedFps);
+                configChanged = true;
+            }
+        }
+
+        VideoResolution resolution = ModConfig.get().getVideoResolution();
+        if (resolution != VideoResolution.ORIGINAL) {
+            VideoResolution clamped = FrameCacheManager.clampResolutionForPack(activePack, resolution);
+            if (clamped != resolution) {
+                ReimaginedIntro.LOGGER.info(
+                    "Pack {} does not exceed {}; resetting video resolution to Original",
+                    activePack.getId(), resolution.getLabel()
+                );
+                ModConfig.get().setVideoResolution(clamped);
+                resolution = clamped;
+                configChanged = true;
+            }
+            if (resolution != VideoResolution.ORIGINAL) {
+                FrameCacheManager.prepareCacheAsync(activePack, resolution, null);
+            }
+        }
+
+        if (configChanged) {
+            ModConfig.save();
         }
     }
 

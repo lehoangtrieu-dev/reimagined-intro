@@ -59,8 +59,17 @@ public class IntroPackSelectionScreen extends Screen {
     private long directDownloadCompletedAt = 0L;
 
     public IntroPackSelectionScreen(Screen parent) {
+        this(parent, Tab.INSTALLED);
+    }
+
+    public IntroPackSelectionScreen(Screen parent, Tab initialTab) {
         super(Component.literal("Intro Packs"));
         this.parent = parent;
+        this.activeTab = initialTab != null ? initialTab : Tab.INSTALLED;
+    }
+
+    public static IntroPackSelectionScreen marketplace(Screen parent) {
+        return new IntroPackSelectionScreen(parent, Tab.BROWSE_ONLINE);
     }
 
     @Override
@@ -68,8 +77,10 @@ public class IntroPackSelectionScreen extends Screen {
         this.screenClosed = false;
         loadThumbnails();
 
+        int headerY = 8;
+
         // 1. Pack List
-        int listY = 44;
+        int listY = headerY + 24;
         int listHeight = this.height - listY - 34;
         this.packList = this.addRenderableWidget(
             new IntroPackList(this, this.minecraft, this.width, listHeight, listY, 142)
@@ -88,20 +99,20 @@ public class IntroPackSelectionScreen extends Screen {
 
         int curX = headerStartX;
         this.installedTabButton = Button.builder(Component.literal("Installed"), b -> switchTab(Tab.INSTALLED))
-            .bounds(curX, 20, installedW, 20)
+            .bounds(curX, headerY, installedW, 20)
             .build();
         this.addRenderableWidget(this.installedTabButton);
         curX += installedW + spacing;
 
         this.browseTabButton = Button.builder(Component.literal("Online"), b -> switchTab(Tab.BROWSE_ONLINE))
-            .bounds(curX, 20, browseW, 20)
+            .bounds(curX, headerY, browseW, 20)
             .tooltip(Tooltip.create(Component.literal("Browse & download intro packs from GitHub")))
             .build();
         this.addRenderableWidget(this.browseTabButton);
         curX += browseW + spacing;
 
         String prevSearch = this.searchBox != null ? this.searchBox.getValue() : "";
-        this.searchBox = new EditBox(this.font, curX, 20, searchW, 20, Component.literal("Search"));
+        this.searchBox = new EditBox(this.font, curX, headerY, searchW, 20, Component.literal("Search"));
         this.searchBox.setHint(Component.literal("Search intros...").withStyle(ChatFormatting.GRAY));
         this.searchBox.setValue(prevSearch);
         this.searchBox.setResponder(this::onSearchChanged);
@@ -109,13 +120,13 @@ public class IntroPackSelectionScreen extends Screen {
         curX += searchW + spacing;
 
         this.contextActionButton = Button.builder(Component.literal("Open Folder"), b -> onContextActionPressed())
-            .bounds(curX, 20, actionW, 20)
+            .bounds(curX, headerY, actionW, 20)
             .build();
         this.addRenderableWidget(this.contextActionButton);
         curX += actionW + spacing;
 
         this.refreshButton = Button.builder(Component.literal("🗘"), b -> onRefreshPressed())
-            .bounds(curX, 20, refreshW, 20)
+            .bounds(curX, headerY, refreshW, 20)
             .build();
         this.addRenderableWidget(this.refreshButton);
 
@@ -469,11 +480,6 @@ public class IntroPackSelectionScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
         super.extractRenderState(guiGraphics, mouseX, mouseY, partialTick);
-
-        // Title
-        Component titleComp = Component.literal("Intro Packs").withStyle(ChatFormatting.BOLD);
-        int titleW = this.font.width(titleComp);
-        guiGraphics.text(this.font, titleComp, (this.width - titleW) / 2, 7, 0xFFFFFFFF);
 
         // Center Status / Empty Hint
         if (packList != null && packList.children().isEmpty()) {

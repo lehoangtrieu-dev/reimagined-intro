@@ -1,5 +1,6 @@
 package noobtrieu.reimaginedintro.client.pack;
 
+import noobtrieu.reimaginedintro.client.config.VideoFps;
 import noobtrieu.reimaginedintro.client.config.VideoResolution;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assumptions;
@@ -16,6 +17,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -44,6 +46,74 @@ class FrameCacheManagerTest {
         assertArrayEquals(new int[]{1280, 720}, VideoResolution.P1080.computeTargetDimensions(1280, 720));
         assertFalse(VideoResolution.P1080.needsDownscale(720));
         assertTrue(VideoResolution.P720.needsDownscale(1080));
+
+        // Filtering hides options >= source height and clamps invalid presets to ORIGINAL
+        assertEquals(
+            List.of(VideoResolution.ORIGINAL, VideoResolution.P1080, VideoResolution.P720, VideoResolution.P480),
+            VideoResolution.getAvailableResolutions(1440)
+        );
+        assertEquals(
+            List.of(VideoResolution.ORIGINAL, VideoResolution.P720, VideoResolution.P480),
+            VideoResolution.getAvailableResolutions(1080)
+        );
+        assertEquals(
+            List.of(VideoResolution.ORIGINAL, VideoResolution.P480),
+            VideoResolution.getAvailableResolutions(720)
+        );
+        assertEquals(List.of(VideoResolution.ORIGINAL), VideoResolution.getAvailableResolutions(480));
+        assertEquals(List.of(VideoResolution.ORIGINAL), VideoResolution.getAvailableResolutions(0));
+
+        assertEquals(VideoResolution.ORIGINAL, VideoResolution.P1080.clampToSourceHeight(720));
+        assertEquals(VideoResolution.ORIGINAL, VideoResolution.P720.clampToSourceHeight(720));
+        assertEquals(VideoResolution.P480, VideoResolution.P480.clampToSourceHeight(720));
+        assertEquals(VideoResolution.P720, VideoResolution.P720.clampToSourceHeight(1080));
+
+        IntroPack emptyPack = createStubPack("empty_pack", "1.0.0", 0, 0, new byte[0]);
+        assertEquals(List.of(VideoResolution.ORIGINAL), FrameCacheManager.getAvailableResolutions(emptyPack));
+        assertEquals(VideoResolution.ORIGINAL, FrameCacheManager.clampResolutionForPack(emptyPack, VideoResolution.P720));
+    }
+
+    @Test
+    void videoFpsFilteringClampingAndSampling() {
+        assertEquals(VideoFps.ORIGINAL, VideoFps.fromId(null));
+        assertEquals(VideoFps.ORIGINAL, VideoFps.fromId("unknown"));
+        assertEquals(VideoFps.FPS_60, VideoFps.fromId("60"));
+        assertEquals(VideoFps.FPS_30, VideoFps.fromId("30"));
+        assertEquals(VideoFps.FPS_15, VideoFps.fromId("15"));
+
+        assertEquals(
+            List.of(VideoFps.ORIGINAL, VideoFps.FPS_60, VideoFps.FPS_30, VideoFps.FPS_15),
+            VideoFps.getAvailableFps(120, true)
+        );
+        assertEquals(
+            List.of(VideoFps.ORIGINAL, VideoFps.FPS_30, VideoFps.FPS_15),
+            VideoFps.getAvailableFps(60, true)
+        );
+        assertEquals(
+            List.of(VideoFps.ORIGINAL, VideoFps.FPS_15),
+            VideoFps.getAvailableFps(30, true)
+        );
+        assertEquals(List.of(VideoFps.ORIGINAL), VideoFps.getAvailableFps(15, true));
+        assertEquals(List.of(VideoFps.ORIGINAL), VideoFps.getAvailableFps(30, false));
+
+        assertEquals(VideoFps.ORIGINAL, VideoFps.FPS_30.clampToSourceFps(30));
+        assertEquals(VideoFps.ORIGINAL, VideoFps.FPS_60.clampToSourceFps(30));
+        assertEquals(VideoFps.FPS_15, VideoFps.FPS_15.clampToSourceFps(30));
+
+        // 30 FPS -> 15 FPS keeps playback duration intact and samples frames 1, 3, 5...
+        assertEquals(1, VideoFps.FPS_15.mapStepToSourceFrame(VideoFps.FPS_15.computeSampleStep(0, 30, 150, false), 30, 150, false));
+        assertEquals(3, VideoFps.FPS_15.mapStepToSourceFrame(VideoFps.FPS_15.computeSampleStep(67, 30, 150, false), 30, 150, false));
+        assertEquals(31, VideoFps.FPS_15.mapStepToSourceFrame(VideoFps.FPS_15.computeSampleStep(1000, 30, 150, false), 30, 150, false));
+        assertEquals(150, VideoFps.FPS_15.mapStepToSourceFrame(VideoFps.FPS_15.computeSampleStep(6000, 30, 150, false), 30, 150, false));
+
+        // Loop wraps cleanly back to frame 1 after exact loop period (150 frames @ 30fps = 5000ms)
+        long loopWrapStep = VideoFps.FPS_15.computeSampleStep(5000, 30, 150, true);
+        assertEquals(0L, loopWrapStep);
+        assertEquals(1, VideoFps.FPS_15.mapStepToSourceFrame(loopWrapStep, 30, 150, true));
+
+        // 60 FPS -> 15 FPS samples every 4th frame (1, 5, 9...)
+        assertEquals(5, VideoFps.FPS_15.mapStepToSourceFrame(1, 60, 120, false));
+        assertEquals(9, VideoFps.FPS_15.mapStepToSourceFrame(2, 60, 120, false));
     }
 
     @Test
@@ -83,6 +153,23 @@ class FrameCacheManagerTest {
         byte[] sdJpeg = createTestJpeg(640, 360);
 
         IntroPack hdPack = createStubPack("hd_test_pack", "1.0.0", 2, 1, hdJpeg);
+        assertEquals(
+            List.of(VideoResolution.ORIGINAL, VideoResolution.P720, VideoResolution.P480),
+            FrameCacheManager.getAvailableResolutions(hdPack)
+        );
+        assertEquals(VideoResolution.ORIGINAL, FrameCacheManager.clampResolutionForPack(hdPack, VideoResolution.P1080));
+        assertEquals(VideoResolution.P720, FrameCacheManager.clampResolutionForPack(hdPack, VideoResolution.P720));
+
+        byte[] p720Jpeg = createTestJpeg(1280, 720);
+        IntroPack p720Pack = createStubPack("p720_test_pack", "1.0.0", 1, 0, p720Jpeg);
+        assertEquals(
+            List.of(VideoResolution.ORIGINAL, VideoResolution.P480),
+            FrameCacheManager.getAvailableResolutions(p720Pack)
+        );
+        assertEquals(VideoResolution.ORIGINAL, FrameCacheManager.clampResolutionForPack(p720Pack, VideoResolution.P720));
+        assertEquals(VideoResolution.ORIGINAL, FrameCacheManager.clampResolutionForPack(p720Pack, VideoResolution.P1080));
+        assertEquals(VideoResolution.P480, FrameCacheManager.clampResolutionForPack(p720Pack, VideoResolution.P480));
+
         FrameCacheManager.prepareCacheAsync(hdPack, VideoResolution.P480, null).get(15, TimeUnit.SECONDS);
 
         assertTrue(FrameCacheManager.isCacheReady(hdPack, VideoResolution.P480));

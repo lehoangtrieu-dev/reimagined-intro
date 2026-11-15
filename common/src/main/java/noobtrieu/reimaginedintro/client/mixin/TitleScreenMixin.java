@@ -19,6 +19,7 @@ import noobtrieu.reimaginedintro.client.config.ModConfig;
 import noobtrieu.reimaginedintro.client.pack.IntroPackManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -27,6 +28,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class TitleScreenMixin extends Screen {
     @Shadow private boolean fading;
     @Shadow private long fadeInStart;
+    @Unique private boolean reimaginedIntro$fadeChecked;
+    @Unique private boolean reimaginedIntro$fadeFromIntroActive;
 
     protected TitleScreenMixin(Component title) {
         super(title);
@@ -135,51 +138,64 @@ public abstract class TitleScreenMixin extends Screen {
     )
     private void fadePanoramaFromIntroFrame(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
         boolean loopActive = ModConfig.get().enableTitleScreenLoop && IntroPackManager.getActivePack().hasLoop();
-        if (!loopActive && this.fading && IntroPackManager.getActivePack().hasIntro()) {
-            float f1 = (float) (Util.getMillis() - this.fadeInStart) / 2000.0F;
-            float f = Math.clamp(Mth.clampedMap(f1, 0.5F, 1.0F, 0.0F, 1.0F), 0.0F, 1.0F);
-            float frameAlpha = 1.0F - f;
-            int alpha = (int) (frameAlpha * 255.0F);
-            if (alpha > 0) {
-                // Calculate aspect ratio scaling to cover screen
-                float screenAspect = (float) this.width / (float) this.height;
-                float targetAspect = 16.0f / 9.0f;
-                int renderWidth, renderHeight, x, y;
-
-                if (screenAspect > targetAspect) {
-                    renderWidth = this.width;
-                    renderHeight = (int) (this.width / targetAspect);
-                    x = 0;
-                    y = (this.height - renderHeight) / 2;
-                } else {
-                    renderHeight = this.height;
-                    renderWidth = (int) (this.height * targetAspect);
-                    x = (this.width - renderWidth) / 2;
-                    y = 0;
-                }
-
-                // Fill any letterbox / margins in black with matching fade
-                guiGraphics.fill(0, 0, this.width, this.height, (alpha << 24));
-
-                // Blit last intro frame dissolving smoothly into the panorama and menu
-                int tintColor = (alpha << 24) | 0x00FFFFFF;
-                guiGraphics.blit(
-                    RenderPipelines.GUI_TEXTURED,
-                    FrameStreamer.getTextureId(),
-                    x,
-                    y,
-                    0.0f,
-                    0.0f,
-                    renderWidth,
-                    renderHeight,
-                    1,
-                    1,
-                    1,
-                    1,
-                    tintColor
-                );
-            }
+        if (loopActive || !this.fading || !IntroPackManager.getActivePack().hasIntro()) {
+            return;
         }
+        if (!this.reimaginedIntro$fadeChecked) {
+            this.reimaginedIntro$fadeChecked = true;
+            this.reimaginedIntro$fadeFromIntroActive = IntroManager.consumeFadeFromIntro() && FrameStreamer.hasLoadedFrameTexture();
+        }
+        if (!this.reimaginedIntro$fadeFromIntroActive || !FrameStreamer.hasLoadedFrameTexture()) {
+            this.reimaginedIntro$fadeFromIntroActive = false;
+            return;
+        }
+
+        float f1 = (float) (Util.getMillis() - this.fadeInStart) / 2000.0F;
+        float f = Math.clamp(Mth.clampedMap(f1, 0.5F, 1.0F, 0.0F, 1.0F), 0.0F, 1.0F);
+        float frameAlpha = 1.0F - f;
+        int alpha = (int) (frameAlpha * 255.0F);
+        if (alpha <= 0) {
+            this.reimaginedIntro$fadeFromIntroActive = false;
+            return;
+        }
+
+        // Calculate aspect ratio scaling to cover screen
+        float screenAspect = (float) this.width / (float) this.height;
+        float targetAspect = 16.0f / 9.0f;
+        int renderWidth, renderHeight, x, y;
+
+        if (screenAspect > targetAspect) {
+            renderWidth = this.width;
+            renderHeight = (int) (this.width / targetAspect);
+            x = 0;
+            y = (this.height - renderHeight) / 2;
+        } else {
+            renderHeight = this.height;
+            renderWidth = (int) (this.height * targetAspect);
+            x = (this.width - renderWidth) / 2;
+            y = 0;
+        }
+
+        // Fill any letterbox / margins in black with matching fade
+        guiGraphics.fill(0, 0, this.width, this.height, (alpha << 24));
+
+        // Blit last intro frame dissolving smoothly into the panorama and menu
+        int tintColor = (alpha << 24) | 0x00FFFFFF;
+        guiGraphics.blit(
+            RenderPipelines.GUI_TEXTURED,
+            FrameStreamer.getTextureId(),
+            x,
+            y,
+            0.0f,
+            0.0f,
+            renderWidth,
+            renderHeight,
+            1,
+            1,
+            1,
+            1,
+            tintColor
+        );
     }
 
     @Inject(

@@ -8,7 +8,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.options.OptionsScreen;
 import net.minecraft.network.chat.Component;
 import noobtrieu.reimaginedintro.client.config.ModConfig;
-import noobtrieu.reimaginedintro.client.config.ModConfigScreen;
+import noobtrieu.reimaginedintro.client.pack.gui.IntroPackSelectionScreen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -33,7 +33,7 @@ public abstract class OptionsScreenMixin extends Screen {
         }
         Button button = Button.builder(
             Component.literal("Reimagined Intro..."),
-            b -> Minecraft.getInstance().gui.setScreen(new ModConfigScreen(this))
+            b -> Minecraft.getInstance().gui.setScreen(IntroPackSelectionScreen.marketplace(this))
         ).width(308).build();
         helper.addChild(button, 2);
     }

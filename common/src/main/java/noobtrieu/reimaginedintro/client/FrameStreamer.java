@@ -6,6 +6,7 @@ import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.Identifier;
 import noobtrieu.reimaginedintro.ReimaginedIntro;
 import noobtrieu.reimaginedintro.client.config.ModConfig;
+import noobtrieu.reimaginedintro.client.config.VideoFps;
 import noobtrieu.reimaginedintro.client.config.VideoResolution;
 import noobtrieu.reimaginedintro.client.pack.FrameCacheManager;
 import noobtrieu.reimaginedintro.client.pack.IntroPack;
@@ -23,7 +24,8 @@ public class FrameStreamer {
     private static DynamicTexture dynamicTexture;
     private static int lastUploadedFrame = -1;
     private static boolean isLoopingPhase = false;
-    private static boolean initialized = false;
+    private static volatile boolean initialized = false;
+    private static volatile boolean hasValidTexture = false;
 
     // Cache of decoded upcoming NativeImages
     private static final ConcurrentHashMap<String, NativeImage> predecodedCache = new ConcurrentHashMap<>();
@@ -43,9 +45,14 @@ public class FrameStreamer {
         return (pack != null && pack.hasLoop()) ? pack.getLoopFrameCount() : 0;
     }
 
-    public static long getFrameDurationMs() {
+    public static int getSourceFps() {
         IntroPack pack = IntroPackManager.getActivePack();
-        return pack != null ? pack.getFrameDurationMs() : 40L;
+        return pack != null ? Math.max(1, pack.getFps()) : 30;
+    }
+
+    public static long getFrameDurationMs() {
+        int effectiveFps = ModConfig.get().getVideoFps().getEffectiveFps(getSourceFps());
+        return Math.max(1L, 1000L / effectiveFps);
     }
 
     public static long getIntroTotalDurationMs() {
@@ -80,8 +87,8 @@ public class FrameStreamer {
         }
 
         if (pack != null && (pack.hasIntro() || pack.hasLoop())) {
-            // Start prefetching upcoming frames
-            prefetchUpcoming(startWithLoop, 2, Math.min(5, startWithLoop ? pack.getLoopFrameCount() : pack.getIntroFrameCount()));
+            // Start prefetching upcoming sampled frames (step 0 was already loaded above)
+            prefetchUpcomingSteps(startWithLoop, 1L, 4);
         }
     }
 
@@ -97,7 +104,7 @@ public class FrameStreamer {
     public static void warmupLoop() {
         int loopCount = getLoopFrameCount();
         if (loopCount > 0) {
-            prefetchUpcoming(true, 1, Math.min(4, loopCount));
+            prefetchUpcomingSteps(true, 0L, 4);
         }
     }
 
@@ -107,23 +114,19 @@ public class FrameStreamer {
         int introCount = getIntroFrameCount();
         int loopCount = getLoopFrameCount();
         long introDuration = getIntroTotalDurationMs();
-        long frameDuration = getFrameDurationMs();
+        int srcFps = getSourceFps();
+        VideoFps fpsSetting = ModConfig.get().getVideoFps();
 
         boolean inLoop = introCount == 0 || elapsedMs >= introDuration;
-        int targetFrame;
-
-        if (!inLoop) {
-            isLoopingPhase = false;
-            targetFrame = (int) (elapsedMs / frameDuration) + 1;
-            if (targetFrame > introCount) targetFrame = introCount;
-        } else {
-            if (loopCount <= 0) {
-                return;
-            }
-            isLoopingPhase = true;
-            long loopElapsed = introCount > 0 ? (elapsedMs - introDuration) : elapsedMs;
-            targetFrame = (int) ((loopElapsed / frameDuration) % loopCount) + 1;
+        if (inLoop && loopCount <= 0) {
+            return;
         }
+
+        isLoopingPhase = inLoop;
+        int activeCount = inLoop ? loopCount : introCount;
+        long phaseElapsed = inLoop ? (introCount > 0 ? Math.max(0L, elapsedMs - introDuration) : Math.max(0L, elapsedMs)) : Math.max(0L, elapsedMs);
+        long currentStep = fpsSetting.computeSampleStep(phaseElapsed, srcFps, activeCount, inLoop);
+        int targetFrame = fpsSetting.mapStepToSourceFrame(currentStep, srcFps, activeCount, inLoop);
 
         if (targetFrame != lastUploadedFrame) {
             uploadFrame(inLoop, targetFrame);
@@ -132,12 +135,13 @@ public class FrameStreamer {
             // Free and remove any skipped or obsolete frames from off-heap memory
             pruneStaleFrames(inLoop, targetFrame);
 
-            // Prefetch ahead by 4 frames
-            prefetchUpcoming(inLoop, targetFrame + 1, targetFrame + 4);
+            // Prefetch ahead by 4 sampled frames
+            prefetchUpcomingSteps(inLoop, currentStep + 1L, 4);
 
             // If nearing end of intro, prefetch loop start frames in the background
-            if (!inLoop && introCount > 0 && targetFrame >= introCount - 8 && loopCount > 0) {
-                prefetchUpcoming(true, 1, Math.min(4, loopCount));
+            int stride = Math.max(1, (int) Math.ceil((double) srcFps / fpsSetting.getEffectiveFps(srcFps)));
+            if (!inLoop && introCount > 0 && targetFrame >= introCount - Math.max(8, 2 * stride) && loopCount > 0) {
+                prefetchUpcomingSteps(true, 0L, 4);
             }
         }
     }
@@ -145,6 +149,9 @@ public class FrameStreamer {
     private static void pruneStaleFrames(boolean isLoop, int currentFrame) {
         if (predecodedCache.isEmpty()) return;
         int loopCount = getLoopFrameCount();
+        int srcFps = getSourceFps();
+        int effectiveFps = ModConfig.get().getVideoFps().getEffectiveFps(srcFps);
+        int keepWindow = Math.max(8, 5 * Math.max(1, (int) Math.ceil((double) srcFps / effectiveFps)));
 
         predecodedCache.entrySet().removeIf(entry -> {
             String key = entry.getKey();
@@ -168,7 +175,7 @@ public class FrameStreamer {
                 } else {
                     if (loopCount <= 0) return true;
                     int distance = (frame - currentFrame + loopCount) % loopCount;
-                    isStale = distance > 8;
+                    isStale = distance > keepWindow;
                 }
 
                 if (isStale) {
@@ -203,15 +210,24 @@ public class FrameStreamer {
             }
             dynamicTexture.setPixels(image);
             dynamicTexture.upload();
+            hasValidTexture = true;
         }
     }
 
-    private static void prefetchUpcoming(boolean isLoop, int startFrame, int endFrame) {
+    private static void prefetchUpcomingSteps(boolean isLoop, long startStep, int stepCount) {
+        int max = isLoop ? getLoopFrameCount() : getIntroFrameCount();
+        if (max <= 0 || stepCount <= 0) return;
+
+        int srcFps = getSourceFps();
+        VideoFps fpsSetting = ModConfig.get().getVideoFps();
         prefetchExecutor.submit(() -> {
-            int max = isLoop ? getLoopFrameCount() : getIntroFrameCount();
-            if (max <= 0) return;
-            for (int f = startFrame; f <= endFrame; f++) {
-                int frame = isLoop ? (((f - 1) % max) + 1) : Math.min(f, max);
+            int previousFrame = -1;
+            for (int i = 0; i < stepCount; i++) {
+                int frame = fpsSetting.mapStepToSourceFrame(startStep + i, srcFps, max, isLoop);
+                if (frame <= 0 || (!isLoop && frame == previousFrame)) {
+                    break;
+                }
+                previousFrame = frame;
                 String key = cacheKey(isLoop, frame);
                 if (!predecodedCache.containsKey(key)) {
                     NativeImage img = loadFrame(isLoop, frame);
@@ -264,6 +280,10 @@ public class FrameStreamer {
         return TEXTURE_ID;
     }
 
+    public static boolean hasLoadedFrameTexture() {
+        return initialized && hasValidTexture && dynamicTexture != null;
+    }
+
     public static boolean isLooping() {
         return isLoopingPhase;
     }
@@ -271,11 +291,25 @@ public class FrameStreamer {
     public static synchronized void cleanup() {
         predecodedCache.values().forEach(NativeImage::close);
         predecodedCache.clear();
-        if (dynamicTexture != null) {
-            dynamicTexture.close();
-            dynamicTexture = null;
-        }
+        hasValidTexture = false;
         initialized = false;
         lastUploadedFrame = -1;
+
+        DynamicTexture toClose = dynamicTexture;
+        dynamicTexture = null;
+        if (toClose != null) {
+            Minecraft mc = Minecraft.getInstance();
+            Runnable releaseTask = () -> {
+                if (mc != null && mc.getTextureManager() != null) {
+                    mc.getTextureManager().release(TEXTURE_ID);
+                }
+                toClose.close();
+            };
+            if (mc != null && !mc.isSameThread()) {
+                mc.execute(releaseTask);
+            } else {
+                releaseTask.run();
+            }
+        }
     }
 }

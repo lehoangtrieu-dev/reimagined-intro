@@ -9,7 +9,7 @@ import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.registries.RegisterEvent;
 import noobtrieu.reimaginedintro.ReimaginedIntro;
-import noobtrieu.reimaginedintro.client.config.ModConfigScreen;
+import noobtrieu.reimaginedintro.client.pack.gui.IntroPackSelectionScreen;
 
 @Mod(NeoForgeReimaginedIntro.MOD_ID)
 public class NeoForgeReimaginedIntro {
@@ -19,9 +19,10 @@ public class NeoForgeReimaginedIntro {
         modEventBus.addListener(this::register);
 
         if (FMLEnvironment.getDist() == Dist.CLIENT) {
+            NeoForgeClientKeybinds.init(modEventBus);
             modContainer.registerExtensionPoint(
                 IConfigScreenFactory.class,
-                (client, parentScreen) -> new ModConfigScreen(parentScreen)
+                (client, parentScreen) -> IntroPackSelectionScreen.marketplace(parentScreen)
             );
             ReimaginedIntro.init();
         }

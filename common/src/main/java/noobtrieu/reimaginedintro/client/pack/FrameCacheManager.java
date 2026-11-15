@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -52,6 +53,7 @@ public final class FrameCacheManager {
     private static final ConcurrentHashMap<String, CompletableFuture<Void>> ACTIVE_JOBS = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, AtomicBoolean> CANCELLATION_FLAGS = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, CacheMeta> VERIFIED_META = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, int[]> PACK_DIMENSIONS = new ConcurrentHashMap<>();
 
     private FrameCacheManager() {}
 
@@ -86,12 +88,14 @@ public final class FrameCacheManager {
         cacheRootOverride = path;
         VERIFIED_META.clear();
         PROGRESS_MAP.clear();
+        PACK_DIMENSIONS.clear();
     }
 
     static synchronized void resetCacheRootForTest() {
         cacheRootOverride = null;
         VERIFIED_META.clear();
         PROGRESS_MAP.clear();
+        PACK_DIMENSIONS.clear();
     }
 
     public static Path getCacheRoot() {
@@ -121,17 +125,75 @@ public final class FrameCacheManager {
     }
 
     static String buildFingerprint(IntroPack pack, VideoResolution resolution) {
+        return buildPackContentKey(pack)
+            + "|" + resolution.getId()
+            + "|v" + FORMAT_VERSION;
+    }
+
+    private static String buildPackContentKey(IntroPack pack) {
         String version = (pack.getManifest() != null && pack.getManifest().getVersion() != null)
             ? pack.getManifest().getVersion()
             : "0";
         int introCount = pack.hasIntro() ? pack.getIntroFrameCount() : 0;
         int loopCount = pack.hasLoop() ? pack.getLoopFrameCount() : 0;
-        return pack.getId()
-            + "|" + version
-            + "|" + introCount
-            + "|" + loopCount
-            + "|" + resolution.getId()
-            + "|v" + FORMAT_VERSION;
+        return pack.getId() + "|" + version + "|" + introCount + "|" + loopCount;
+    }
+
+    /**
+     * Returns the cached {@code {width, height}} of the pack's first video frame, or {@code null}
+     * if the pack has no video frames or dimensions cannot be probed.
+     */
+    public static int[] getPackSourceDimensions(IntroPack pack) {
+        if (pack == null) return null;
+        int introCount = pack.hasIntro() ? pack.getIntroFrameCount() : 0;
+        int loopCount = pack.hasLoop() ? pack.getLoopFrameCount() : 0;
+        if (introCount <= 0 && loopCount <= 0) {
+            return null;
+        }
+        String key = buildPackContentKey(pack);
+        int[] cached = PACK_DIMENSIONS.get(key);
+        if (cached != null) {
+            return cached.clone();
+        }
+        int[] probed = probeFirstFrameDimensions(pack, introCount, loopCount);
+        if (probed != null && probed.length >= 2 && probed[0] > 0 && probed[1] > 0) {
+            int[] stored = new int[]{probed[0], probed[1]};
+            PACK_DIMENSIONS.put(key, stored);
+            return stored.clone();
+        }
+        return null;
+    }
+
+    /**
+     * Returns {@link VideoResolution#ORIGINAL} plus presets strictly lower than the pack's source height.
+     */
+    public static List<VideoResolution> getAvailableResolutions(IntroPack pack) {
+        if (pack == null || countPackFrames(pack) <= 0) {
+            return List.of(VideoResolution.ORIGINAL);
+        }
+        int[] dims = getPackSourceDimensions(pack);
+        if (dims == null) {
+            return Arrays.asList(VideoResolution.values());
+        }
+        return VideoResolution.getAvailableResolutions(dims[1]);
+    }
+
+    /**
+     * Clamps {@code desired} to {@link VideoResolution#ORIGINAL} when the active pack's source height
+     * is already less than or equal to {@code desired}.
+     */
+    public static VideoResolution clampResolutionForPack(IntroPack pack, VideoResolution desired) {
+        if (desired == null || desired == VideoResolution.ORIGINAL) {
+            return VideoResolution.ORIGINAL;
+        }
+        if (pack == null || countPackFrames(pack) <= 0) {
+            return VideoResolution.ORIGINAL;
+        }
+        int[] dims = getPackSourceDimensions(pack);
+        if (dims == null) {
+            return desired;
+        }
+        return desired.clampToSourceHeight(dims[1]);
     }
 
     public static CacheProgress getProgress(IntroPack pack, VideoResolution resolution) {
@@ -253,6 +315,7 @@ public final class FrameCacheManager {
         cancelMatchingJobs(prefix);
         VERIFIED_META.keySet().removeIf(k -> k.startsWith(prefix));
         PROGRESS_MAP.keySet().removeIf(k -> k.startsWith(prefix));
+        PACK_DIMENSIONS.keySet().removeIf(k -> k.startsWith(packId + "|"));
 
         deleteDirectoryQuietly(getPackCacheDir(packId));
     }
@@ -264,6 +327,7 @@ public final class FrameCacheManager {
         cancelMatchingJobs(null);
         VERIFIED_META.clear();
         PROGRESS_MAP.clear();
+        PACK_DIMENSIONS.clear();
         deleteDirectoryQuietly(getCacheRoot());
     }
 
@@ -314,7 +378,7 @@ public final class FrameCacheManager {
             return;
         }
 
-        int[] sampleDims = probeFirstFrameDimensions(pack, introCount, loopCount);
+        int[] sampleDims = getPackSourceDimensions(pack);
         if (cancelled.get()) return;
 
         if (sampleDims == null) {

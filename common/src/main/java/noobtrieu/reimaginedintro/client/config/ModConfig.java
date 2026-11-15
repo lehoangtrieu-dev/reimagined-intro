@@ -22,6 +22,7 @@ public class ModConfig {
     public String selectedPack = "mojang_reimagined";
     public String packRegistryUrl = DEFAULT_REGISTRY_URL;
     public String videoResolution = VideoResolution.ORIGINAL.getId();
+    public String videoFps = VideoFps.ORIGINAL.getId();
 
     public VideoResolution getVideoResolution() {
         return VideoResolution.fromId(this.videoResolution);
@@ -29,6 +30,14 @@ public class ModConfig {
 
     public void setVideoResolution(VideoResolution resolution) {
         this.videoResolution = (resolution != null ? resolution : VideoResolution.ORIGINAL).getId();
+    }
+
+    public VideoFps getVideoFps() {
+        return VideoFps.fromId(this.videoFps);
+    }
+
+    public void setVideoFps(VideoFps fps) {
+        this.videoFps = (fps != null ? fps : VideoFps.ORIGINAL).getId();
     }
 
     public String getEffectiveRegistryUrl() {

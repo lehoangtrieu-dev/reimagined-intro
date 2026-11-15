@@ -11,6 +11,7 @@ public class IntroManager {
     private static long startTimeMs = -1;
     private static boolean hasPlayed = false;
     private static boolean skipped = false;
+    private static boolean pendingFadeFromIntro = false;
     private static Screen returnScreen = null;
 
     public static synchronized void setReturnScreen(Screen screen) {
@@ -37,6 +38,7 @@ public class IntroManager {
             }
 
             ReimaginedIntro.LOGGER.info("[ReimaginedIntro] Starting intro sequence for pack: " + activePack.getName());
+            pendingFadeFromIntro = false;
             startTimeMs = System.currentTimeMillis();
             FrameStreamer.init();
             IntroSoundController.play();
@@ -84,6 +86,7 @@ public class IntroManager {
                 returnScreen = null;
                 Minecraft.getInstance().gui.setScreen(back);
             } else {
+                pendingFadeFromIntro = true;
                 Minecraft.getInstance().gui.setScreen(new TitleScreen(true));
             }
         }
@@ -101,8 +104,15 @@ public class IntroManager {
             returnScreen = null;
             Minecraft.getInstance().gui.setScreen(back);
         } else {
+            pendingFadeFromIntro = true;
             Minecraft.getInstance().gui.setScreen(new TitleScreen(true));
         }
+    }
+
+    public static synchronized boolean consumeFadeFromIntro() {
+        boolean result = pendingFadeFromIntro;
+        pendingFadeFromIntro = false;
+        return result;
     }
 
     public static void resetForReplay() {

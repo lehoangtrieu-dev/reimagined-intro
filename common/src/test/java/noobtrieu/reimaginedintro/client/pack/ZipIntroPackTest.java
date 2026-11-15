@@ -60,6 +60,7 @@ public class ZipIntroPackTest {
             assertEquals("Full Test Pack", pack.getName());
             assertEquals(60, pack.getFps());
             assertFalse(pack.isOfficial());
+            assertTrue(IntroPackManager.canUninstall(pack));
 
             // Auto-counted frames
             assertTrue(pack.hasIntro());

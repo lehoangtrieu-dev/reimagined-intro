@@ -138,4 +138,73 @@ public class IntroPackManager {
         }
         return availablePacks.get(id);
     }
+
+    /**
+     * Returns whether {@code pack} is an installed external pack that can be removed from disk.
+     * The built-in {@link DefaultIntroPack} cannot be uninstalled.
+     */
+    public static boolean canUninstall(IntroPack pack) {
+        return pack != null
+            && !(pack instanceof DefaultIntroPack)
+            && !DefaultIntroPack.DEFAULT_ID.equals(pack.getId());
+    }
+
+    /**
+     * Safely switches back to {@link DefaultIntroPack} if {@code pack} is active, closes any open
+     * archive handles, deletes the pack file or folder inside {@code intros/}, and reloads packs.
+     */
+    public static synchronized boolean uninstallPack(IntroPack pack) {
+        if (!canUninstall(pack)) {
+            return false;
+        }
+
+        Path target = null;
+        if (pack instanceof ZipIntroPack zipPack && zipPack.getZipFile() != null) {
+            target = zipPack.getZipFile().toPath();
+        } else if (pack instanceof DirectoryIntroPack dirPack) {
+            target = dirPack.getRootDir();
+        }
+        if (target == null) {
+            return false;
+        }
+
+        Path introsRoot = getIntrosDir().toAbsolutePath().normalize();
+        Path normalizedTarget = target.toAbsolutePath().normalize();
+        if (!normalizedTarget.startsWith(introsRoot) || normalizedTarget.equals(introsRoot)) {
+            ReimaginedIntro.LOGGER.warn("Refusing to delete pack path outside intros directory: {}", normalizedTarget);
+            return false;
+        }
+
+        if (activePack == pack || (activePack != null && activePack.getId().equals(pack.getId()))) {
+            setActivePack(DEFAULT_PACK);
+        }
+
+        availablePacks.remove(pack.getId());
+        try {
+            pack.close();
+        } catch (Exception ignored) {}
+
+        try {
+            if (Files.isDirectory(normalizedTarget)) {
+                try (var walk = Files.walk(normalizedTarget)) {
+                    walk.sorted(Comparator.reverseOrder()).forEach(p -> {
+                        try {
+                            Files.deleteIfExists(p);
+                        } catch (IOException ex) {
+                            throw new java.io.UncheckedIOException(ex);
+                        }
+                    });
+                }
+            } else {
+                Files.deleteIfExists(normalizedTarget);
+            }
+            ReimaginedIntro.LOGGER.info("Uninstalled intro pack '{}' ({})", pack.getName(), normalizedTarget.getFileName());
+            reloadPacks();
+            return true;
+        } catch (Exception e) {
+            ReimaginedIntro.LOGGER.error("Failed to uninstall intro pack: " + normalizedTarget, e);
+            reloadPacks();
+            return false;
+        }
+    }
 }

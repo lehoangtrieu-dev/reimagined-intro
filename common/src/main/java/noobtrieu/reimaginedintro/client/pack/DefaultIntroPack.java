@@ -11,10 +11,10 @@ public class DefaultIntroPack implements IntroPack {
     public DefaultIntroPack() {
         this.manifest = new IntroPackManifest();
         this.manifest.setId(DEFAULT_ID);
-        this.manifest.setName("Mojang Studios Reimagined");
+        this.manifest.setName("Reimagined Intro");
         this.manifest.setAuthor("NoobTrieu");
         this.manifest.setVersion("1.0.0");
-        this.manifest.setDescription("Default cinematic reimagined Mojang Studios intro and animated title screen.");
+        this.manifest.setDescription("The default look and feel of Reimagined Intro.");
         this.manifest.setOfficial(true);
         this.manifest.setFps(25);
     }
@@ -51,7 +51,7 @@ public class DefaultIntroPack implements IntroPack {
 
     @Override
     public boolean hasPanoramaOverlay() {
-        return false;
+        return true;
     }
 
     @Override
@@ -93,7 +93,10 @@ public class DefaultIntroPack implements IntroPack {
 
     @Override
     public InputStream openThumbnail() {
-        InputStream stream = ReimaginedIntro.class.getResourceAsStream("/assets/reimagined-intro/textures/intro/frame_0161.jpg");
+        InputStream stream = ReimaginedIntro.class.getResourceAsStream("/assets/reimagined-intro/textures/gui/panorama_overlay.png");
+        if (stream == null) {
+            stream = ReimaginedIntro.class.getResourceAsStream("/assets/reimagined-intro/textures/intro/frame_0161.jpg");
+        }
         if (stream == null) {
             stream = ReimaginedIntro.class.getResourceAsStream("/assets/reimagined-intro/icon.png");
         }
@@ -102,7 +105,7 @@ public class DefaultIntroPack implements IntroPack {
 
     @Override
     public InputStream openPanoramaOverlay() {
-        return null;
+        return ReimaginedIntro.class.getResourceAsStream("/assets/reimagined-intro/textures/gui/panorama_overlay.png");
     }
 
     @Override

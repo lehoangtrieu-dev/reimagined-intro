@@ -10,7 +10,7 @@ public class DefaultIntroPackTest {
     public void testDefaultIntroPackProperties() {
         DefaultIntroPack pack = new DefaultIntroPack();
         assertEquals(DefaultIntroPack.DEFAULT_ID, pack.getId());
-        assertEquals("Mojang Studios Reimagined", pack.getName());
+        assertEquals("Reimagined Intro", pack.getName());
         assertTrue(pack.isOfficial());
         assertEquals(25, pack.getFps());
         assertEquals(40L, pack.getFrameDurationMs());
@@ -24,12 +24,17 @@ public class DefaultIntroPackTest {
 
         assertTrue(pack.hasAudio());
         assertFalse(pack.hasPanorama());
-        assertFalse(pack.hasPanoramaOverlay());
+        assertTrue(pack.hasPanoramaOverlay());
 
         assertNotNull(pack.openThumbnail());
+        assertNotNull(pack.openPanoramaOverlay());
         assertNotNull(pack.openAudio());
         assertNotNull(pack.openIntroFrame(1));
         assertNotNull(pack.openLoopFrame(1));
+
+        assertFalse(IntroPackManager.canUninstall(pack));
+        assertFalse(IntroPackManager.canUninstall(null));
+        assertFalse(IntroPackManager.uninstallPack(pack));
     }
 }
 

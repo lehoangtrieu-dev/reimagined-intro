@@ -11,12 +11,21 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class ModConfig {
+    public static final String DEFAULT_REGISTRY_URL = "https://raw.githubusercontent.com/lehoangtrieu-dev/reimagined-intro/main/packs/registry.json";
+
     public boolean enableIntro = true;
     public float introVolume = 1.0f;
     public boolean enableTitleScreenLoop = true;
     public boolean showSkipPrompt = true;
     public boolean ignoreLegacyWarning = false;
     public String selectedPack = "mojang_reimagined";
+    public String packRegistryUrl = DEFAULT_REGISTRY_URL;
+
+    public String getEffectiveRegistryUrl() {
+        return (packRegistryUrl == null || packRegistryUrl.trim().isEmpty())
+            ? DEFAULT_REGISTRY_URL
+            : packRegistryUrl.trim();
+    }
 
     private static ModConfig INSTANCE;
     private static final Path CONFIG_FILE = Services.PLATFORM.getConfigDir().resolve("reimagined-intro.json");

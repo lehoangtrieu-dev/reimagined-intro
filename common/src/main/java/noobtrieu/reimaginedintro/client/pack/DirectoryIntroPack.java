@@ -26,6 +26,10 @@ public class DirectoryIntroPack implements IntroPack {
         initialize();
     }
 
+    public Path getRootDir() {
+        return rootDir;
+    }
+
     private void initialize() throws IOException {
         Path manifestPath = rootDir.resolve("intro_pack.json");
         if (!Files.exists(manifestPath)) {

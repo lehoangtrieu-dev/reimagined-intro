@@ -35,6 +35,10 @@ public class ZipIntroPack implements IntroPack {
         }
     }
 
+    public File getZipFile() {
+        return zipFileOnDisk;
+    }
+
     private void initialize() throws IOException {
         String basePrefix = "";
 

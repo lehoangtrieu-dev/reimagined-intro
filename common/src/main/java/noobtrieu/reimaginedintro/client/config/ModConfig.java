@@ -12,6 +12,8 @@ import java.nio.file.Path;
 
 public class ModConfig {
     public static final String DEFAULT_REGISTRY_URL = "https://raw.githubusercontent.com/lehoangtrieu-dev/reimagined-intro/master/packs/registry.json";
+    private static final String LEGACY_MAIN_REGISTRY_URL = "https://raw.githubusercontent.com/lehoangtrieu-dev/reimagined-intro/main/packs/registry.json";
+    private static final String LEGACY_V4_DEV_REGISTRY_URL = "https://raw.githubusercontent.com/lehoangtrieu-dev/reimagined-intro/v4-dev/packs/registry.json";
 
     public boolean enableIntro = true;
     public float introVolume = 1.0f;
@@ -41,9 +43,15 @@ public class ModConfig {
     }
 
     public String getEffectiveRegistryUrl() {
-        return (packRegistryUrl == null || packRegistryUrl.trim().isEmpty())
-            ? DEFAULT_REGISTRY_URL
-            : packRegistryUrl.trim();
+        if (packRegistryUrl == null || packRegistryUrl.trim().isEmpty()) {
+            return DEFAULT_REGISTRY_URL;
+        }
+        String trimmed = packRegistryUrl.trim();
+        if (LEGACY_MAIN_REGISTRY_URL.equals(trimmed) || LEGACY_V4_DEV_REGISTRY_URL.equals(trimmed)) {
+            this.packRegistryUrl = DEFAULT_REGISTRY_URL;
+            return DEFAULT_REGISTRY_URL;
+        }
+        return trimmed;
     }
 
     private static ModConfig INSTANCE;

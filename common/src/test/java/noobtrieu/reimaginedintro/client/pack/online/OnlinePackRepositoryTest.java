@@ -111,8 +111,8 @@ class OnlinePackRepositoryTest {
 
     @Test
     void normalizeUserUrlConvertsGitHubBlobLinks() {
-        String blob = "https://github.com/lehoangtrieu-dev/reimagined-intro/blob/v4-dev/packs/registry.json";
-        String expected = "https://raw.githubusercontent.com/lehoangtrieu-dev/reimagined-intro/v4-dev/packs/registry.json";
+        String blob = "https://github.com/lehoangtrieu-dev/reimagined-intro/blob/master/packs/registry.json";
+        String expected = "https://raw.githubusercontent.com/lehoangtrieu-dev/reimagined-intro/master/packs/registry.json";
         assertEquals(expected, OnlinePackRepository.normalizeUserUrl(blob));
 
         String release = "https://github.com/lehoangtrieu-dev/reimagined-intro/releases/download/v1/pack.zip";

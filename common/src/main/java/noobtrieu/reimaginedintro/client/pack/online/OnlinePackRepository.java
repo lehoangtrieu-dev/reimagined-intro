@@ -45,8 +45,6 @@ public class OnlinePackRepository {
     private static final long MAX_THUMBNAIL_BYTES = 8L * 1024L * 1024L;
     private static final long MAX_PACK_BYTES = 512L * 1024L * 1024L;
     private static final String USER_AGENT = "ReimaginedIntro/4.0 (Minecraft Mod)";
-    private static final String FALLBACK_V4_DEV_REGISTRY =
-        "https://raw.githubusercontent.com/lehoangtrieu-dev/reimagined-intro/v4-dev/packs/registry.json";
 
     private static final ExecutorService NETWORK_EXECUTOR = Executors.newFixedThreadPool(3, runnable -> {
         Thread thread = new Thread(runnable, "ReimaginedIntro-Net");
@@ -138,18 +136,6 @@ public class OnlinePackRepository {
                 catalogError = null;
                 return cachedCatalog;
             } catch (Exception primaryEx) {
-                // If the default main branch URL returns 404 before v4-dev merges, try v4-dev automatically
-                if (primaryUrl.equals(ModConfig.DEFAULT_REGISTRY_URL)) {
-                    try {
-                        List<RemoteIntroPack> fallbackPacks = fetchCatalogFromUrl(FALLBACK_V4_DEV_REGISTRY);
-                        cachedCatalog = Collections.unmodifiableList(fallbackPacks);
-                        catalogLoadedOnce = true;
-                        catalogError = null;
-                        return cachedCatalog;
-                    } catch (Exception fallbackEx) {
-                        ReimaginedIntro.LOGGER.warn("Fallback registry fetch failed: {}", fallbackEx.getMessage());
-                    }
-                }
                 ReimaginedIntro.LOGGER.error("Failed to fetch online intro pack catalog from " + primaryUrl, primaryEx);
                 catalogError = primaryEx.getMessage() != null ? primaryEx.getMessage() : "Connection failed";
                 return cachedCatalog;

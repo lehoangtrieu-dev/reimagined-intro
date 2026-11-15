@@ -11,7 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class ModConfig {
-    public static final String DEFAULT_REGISTRY_URL = "https://raw.githubusercontent.com/lehoangtrieu-dev/reimagined-intro/main/packs/registry.json";
+    public static final String DEFAULT_REGISTRY_URL = "https://raw.githubusercontent.com/lehoangtrieu-dev/reimagined-intro/master/packs/registry.json";
 
     public boolean enableIntro = true;
     public float introVolume = 1.0f;

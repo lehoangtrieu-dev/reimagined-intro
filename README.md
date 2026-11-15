@@ -10,40 +10,15 @@
 
 ---
 
-## ![Editions](https://cdn.modrinth.com/data/cached_images/d6de0e5c13e0a12363cfca725c43ce4be719af51.png)
-
-Reimagined Intro comes in two variants depending on your hardware:
-
-| Edition      | Quality          | File Size | Recommended For                           | Where to Get                                                                         |
-| :----------- | :--------------- | :-------- | :---------------------------------------- | :----------------------------------------------------------------------------------- |
-| **Standard** | **2K (1440p)**   | ~100 MB   | Standard / gaming PCs, crisp displays     | **Modrinth** & GitHub                                                                |
-| **Lite**     | **1080p / 720p** | ~35 MB    | Laptops, integrated GPUs, low-spec system | [**GitHub Releases**](https://github.com/lehoangtrieu-dev/reimagined-intro/releases) |
-
-> 💡 **Tip**: If you experience frame drops during the intro or simply want a smaller download for large modpacks, the **Lite Edition** runs smoothly even on older or budget hardware!
-
----
-
 ## ![What's New](https://cdn.modrinth.com/data/cached_images/40840eca740c834a4ee28645dccca860a66e5b8c.png)
 
-### Reimagined Intro 3.0.0:
+#### Reimagined Intro 4.0.0:
 
-- **Now a Standalone Mod**: Completely rebuilt from the ground up as a dedicated mod — FancyMenu and Drippy Loading Screen are no longer required!
-
-- **100% Open Source**: Full source code is now publicly available on [GitHub](https://github.com/lehoangtrieu-dev/reimagined-intro) under the MIT License!
-
-- **Seamless Transition**: Zero black frames or stutter (hopefully).
-
-- **Skip Anytime**: Press `ESC` to jump straight to the title screen.
-
-- **In-Game Config Menu**: Built-in settings screen (via Mod Menu) allowing you to:
-  - Toggle intro playback
-  - Adjust intro volume
-  - Toggle the title screen ambient loop
-  - Toggle the on-screen skip prompt
-
-- **Smooth Menu Fade**: Buttons now fade in smoothly instead of appearing abruptly.
-
-- **v2 Migration Assistant**: Automatically detects old FancyMenu v2 setups and offers a one-click cleanup to prevent visual conflicts.
+- **Intro Packs & Online Marketplace**: Browse, search, and install official or custom intro packs (`.zip`, folders, or direct URL) right inside Minecraft.
+- **Built-in Quality Controls**: Lower **Resolution** (`1080p` / `720p` / `480p`) and **FPS** (`60` / `30` / `15`) directly in Options — no separate Lite edition needed.
+- **Custom Keybinds**: Rebind `F6` (Replay Intro), `F7` (Options), and `F8` (Intro Packs) under **Options > Controls > Key Binds**.
+- **Redesigned Options Menu**: A newly designed Reimagined Intro Options screen is now available directly from Minecraft's **Options** menu (and can be hidden anytime) — no [Mod Menu](https://modrinth.com/mod/modmenu) required.
+- **Bug Fixes**: Fixed the missing-texture flash on static Title Screens, cleanly restored vanilla panorama fallbacks when switching packs, and improved cross-platform `.zip` pack loading.
 
 ---
 

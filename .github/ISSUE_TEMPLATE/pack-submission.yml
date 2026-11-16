@@ -1,0 +1,44 @@
+name: Intro Pack Submission
+description: Submit your custom Intro Pack to the Reimagined Intro Online Marketplace.
+title: "[Pack Submission]: <Your Pack Name>"
+labels:
+  - pack-submission
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Want your Intro Pack featured in the in-game Online Marketplace?
+
+        Before submitting, make sure your `.zip` follows the folder structure and `intro_pack.json` format in the **[Wiki Guide](https://github.com/lehoangtrieu-dev/reimagined-intro/wiki)**. All pack details (`intro_pack.json`, `thumbnail.png`, frames, and `audio.ogg`) will be pulled directly from your `.zip`.
+
+        > **Tip:** Replace `<Your Pack Name>` in the title above with your pack's name so it's easy to spot!
+
+  - type: input
+    id: download_url
+    attributes:
+      label: Pack `.zip` Download Link
+      description: Upload your `.zip` to Google Drive (set access to **"Anyone with the link"**), Dropbox, MediaFire, or a GitHub Release and paste the link here. Please avoid Discord links since they expire.
+      placeholder: https://...
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Preview & Notes (Optional)
+      description: Drop a preview video/screenshot or YouTube link, credit any music/trailers used, or leave a note for reviewers.
+      placeholder: Optional preview link, credits, or notes...
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Before Submitting
+      options:
+        - label: My `.zip` follows the [Wiki Guide](https://github.com/lehoangtrieu-dev/reimagined-intro/wiki) (valid `intro_pack.json`, frames/audio, and `thumbnail.png`).
+          required: true
+        - label: I tested this `.zip` locally in Reimagined Intro 4.0.0+ and confirmed it works properly.
+          required: true
+        - label: I made/assembled this pack myself (not re-uploading someone else's pack) and credited any sources used.
+          required: true

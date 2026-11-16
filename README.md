@@ -22,12 +22,13 @@
 - **Built-in Quality Controls**: Lower **Resolution** (`1080p` / `720p` / `480p`) and **FPS** (`60` / `30` / `15`) directly in Options — no separate Lite edition needed.
 - **Custom Keybinds**: Rebind `F6` (Replay Intro), `F7` (Options), and `F8` (Intro Packs) under **Options > Controls > Key Binds**.
 - **Redesigned Options Menu**: A newly designed Reimagined Intro Options screen is now available directly from Minecraft's **Options** menu (and can be hidden anytime) — no [Mod Menu](https://modrinth.com/mod/modmenu) required.
-- **Bug Fixes**: Fixed the missing-texture flash on static Title Screens, cleanly restored vanilla panorama fallbacks when switching packs, and improved cross-platform `.zip` pack loading.
+- **Bug Fixes**: Fixed the missing-texture flash on static Title Screens, cleanly restored vanilla panorama fallbacks when switching packs, improved cross-platform `.zip` pack loading, and smoothed the splash-to-intro transition with a centered loading bar.
 
 ---
 
 ## ![Support](https://cdn.modrinth.com/data/cached_images/250583fcc04d49b0ba10c492dd4fb6ad6a1095ce_0.webp)
 
+- 🎨 **Want to make your own Intro Pack?** Check out the [Wiki](https://github.com/lehoangtrieu-dev/reimagined-intro/wiki) for folder structure and submission steps!
 - 🐛 **Found a bug or crash?** Please open an issue on [GitHub Issues](https://github.com/lehoangtrieu-dev/reimagined-intro/issues) with your log so we can fix it!
 - 💬 **Questions or feedback?** Feel free to reach out on Discord at **@noobtrieu**.
 
